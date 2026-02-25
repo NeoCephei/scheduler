@@ -1,0 +1,36 @@
+# Node / Electron
+node_modules/
+dist/
+build/
+.cache/
+pnpm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Logs
+logs
+*.log
+
+# SQLite DB (local dev) - keep if you want to track DB in repo, otherwise ignored
+data/*.db
+
+# Electron builder output
+release/
+*.exe
+*.dmg
+*.AppImage
+
+# TypeScript
+*.tsbuildinfo
