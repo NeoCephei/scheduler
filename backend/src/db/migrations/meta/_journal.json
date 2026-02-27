@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1772149834788,
+      "tag": "0000_lying_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772151417760,
+      "tag": "0001_needy_swarm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772151485132,
+      "tag": "0002_charming_grim_reaper",
+      "breakpoints": true
+    }
+  ]
+}
