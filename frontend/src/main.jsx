@@ -4,6 +4,9 @@ import { RouterProvider, createRouter, createRoute } from '@tanstack/react-route
 import { Route as rootRoute } from './routes/__root'
 import { Route as indexRoute } from './routes/index'
 import { Route as configRoute } from './routes/configuration'
+import { Route as staffRoute } from './routes/staff'
+import { Route as staffDetailRoute } from './routes/staff.$workerId'
+import { Route as absencesRoute } from './routes/absences'
 
 import './index.css'
 import './i18n/config'
@@ -12,6 +15,9 @@ import './i18n/config'
 const routeTree = rootRoute.addChildren([
   indexRoute,
   configRoute,
+  staffRoute,
+  staffDetailRoute,
+  absencesRoute,
 ])
 
 // Create a new router instance

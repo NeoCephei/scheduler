@@ -9,6 +9,7 @@ export default function ShiftsTab() {
   const { shifts, addShift, updateShift, deleteShift } = useConfigStore();
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [shiftToDelete, setShiftToDelete] = useState(null);
   
   const [formData, setFormData] = useState({ name: '', startTime: '08:00', endTime: '15:00' });
 
@@ -56,7 +57,7 @@ export default function ShiftsTab() {
                 <h3 className="font-semibold text-lg">{shift.name}</h3>
                 <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEdit(shift)}><Edit2 size={14}/></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => deleteShift(shift.id)}><Trash2 size={14}/></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setShiftToDelete(shift)}><Trash2 size={14}/></Button>
                 </div>
               </div>
               <div className="flex items-center text-sm text-muted-foreground gap-2 bg-muted/50 w-max px-2 py-1 rounded">
@@ -111,6 +112,20 @@ export default function ShiftsTab() {
             <Button type="submit">Guardar</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!shiftToDelete} onClose={() => setShiftToDelete(null)} title="Eliminar Turno">
+        <div className="space-y-4">
+          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el turno <strong>{shiftToDelete?.name}</strong>?</p>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setShiftToDelete(null)}>Cancelar</Button>
+            <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
+              await deleteShift(shiftToDelete.id);
+              setShiftToDelete(null);
+            }}>Eliminar</Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

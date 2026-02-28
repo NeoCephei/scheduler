@@ -9,6 +9,7 @@ export const useConfigStore = create((set, get) => ({
   error: null,
 
   fetchData: async () => {
+    if (get().areas.length > 0 || get().loading) return; // Prevent double fetching in StrictMode
     set({ loading: true, error: null });
     try {
       const [areas, shifts, profiles] = await Promise.all([

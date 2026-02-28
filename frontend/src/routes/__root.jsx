@@ -24,10 +24,16 @@ function RootComponent() {
           </div>
           
           <nav className="flex items-center space-x-6 text-sm font-medium flex-1">
-            <Link to="/" className="transition-colors hover:text-foreground/80 text-foreground">
+            <Link to="/" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               {t('nav.dashboard')}
             </Link>
-            <Link to="/configuration" className="transition-colors hover:text-foreground/80 text-foreground/60">
+            <Link to="/staff" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
+              Plantilla
+            </Link>
+            <Link to="/absences" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
+              Ausencias
+            </Link>
+            <Link to="/configuration" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               {t('nav.configuration')}
             </Link>
           </nav>

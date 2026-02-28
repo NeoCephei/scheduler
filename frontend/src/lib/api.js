@@ -24,3 +24,20 @@ export const ProfilesAPI = {
   update: (id, data) => api.put(`/profiles/${id}`, data).then(res => res.data),
   delete: (id) => api.delete(`/profiles/${id}`).then(res => res.data)
 };
+
+export const WorkersAPI = {
+  getAll: () => api.get('/workers').then(res => res.data),
+  getById: (id) => api.get(`/workers/${id}`).then(res => res.data),
+  create: (data) => api.post('/workers', data).then(res => res.data),
+  update: (id, data) => api.put(`/workers/${id}`, data).then(res => res.data),
+  toggleActive: (id) => api.patch(`/workers/${id}/toggle-active`).then(res => res.data),
+  delete: (id) => api.delete(`/workers/${id}`).then(res => res.data)
+};
+
+export const AbsencesAPI = {
+  getByWorker: (workerId) => api.get(`/absences/worker/${workerId}`).then(res => res.data),
+  getAll: () => api.get('/absences').then(res => res.data),
+  create: (data) => api.post('/absences', data).then(res => res.data),
+  update: (id, data) => api.put(`/absences/${id}`, data).then(res => res.data),
+  delete: (id) => api.delete(`/absences/${id}`).then(res => res.data)
+};

@@ -3,16 +3,14 @@ const { sqliteTable, text, integer } = require('drizzle-orm/sqlite-core');
 const areas = sqliteTable('areas', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  color: text('color').notNull(),
-  isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false)
+  color: text('color').notNull()
 });
 
 const shifts = sqliteTable('shifts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   startTime: text('start_time').notNull(), // HH:MM format
-  endTime: text('end_time').notNull(),      // HH:MM format
-  isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false)
+  endTime: text('end_time').notNull()      // HH:MM format
 });
 
 const holidays = sqliteTable('holidays', {
@@ -26,7 +24,6 @@ const profiles = sqliteTable('profiles', {
   name: text('name').notNull(),
   areaId: integer('area_id').notNull().references(() => areas.id),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false),
   shiftId: integer('shift_id').references(() => shifts.id),
   minBackupWorkers: integer('min_backup_workers').notNull().default(0)
 });
@@ -44,7 +41,10 @@ const workers = sqliteTable('workers', {
   name: text('name').notNull(),
   category: text('category').notNull(), // 'FIJO', 'SUPLENTE'
   fixedProfileId: integer('fixed_profile_id').references(() => profiles.id),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true)
+  substituteType: text('substitute_type'), // Only for SUPLENTE
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false),
+  notes: text('notes')
 });
 
 const workerCapabilities = sqliteTable('worker_capabilities', {
@@ -55,8 +55,10 @@ const workerCapabilities = sqliteTable('worker_capabilities', {
 const absences = sqliteTable('absences', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workerId: integer('worker_id').notNull().references(() => workers.id),
+  type: text('type').notNull(), // from ABSENCE_TYPES constant
   dateStart: text('date_start').notNull(),
-  dateEnd: text('date_end').notNull()
+  dateEnd: text('date_end').notNull(),
+  note: text('note')
 });
 
 const assignments = sqliteTable('assignments', {

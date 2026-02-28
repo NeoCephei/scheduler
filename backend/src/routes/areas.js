@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
-const { areas } = require('../db/schema');
+const { areas, profiles, profileTimeSlots, workerCapabilities, workers } = require('../db/schema');
 const { eq } = require('drizzle-orm');
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 // GET all areas
 router.get('/', (req, res) => {
   try {
-    const allAreas = db.select().from(areas).where(eq(areas.isDeleted, false)).all();
+    const allAreas = db.select().from(areas).all();
     res.json(allAreas);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -59,11 +59,19 @@ router.put('/:id', (req, res) => {
 // DELETE area (Soft Delete)
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.update(areas)
-      .set({ isDeleted: true })
-      .where(eq(areas.id, Number(req.params.id)))
-      .returning()
-      .get();
+    const areaId = Number(req.params.id);
+    const result = db.transaction((tx) => {
+      const areaProfiles = tx.select({ id: profiles.id }).from(profiles).where(eq(profiles.areaId, areaId)).all();
+      
+      for (const p of areaProfiles) {
+        tx.delete(profileTimeSlots).where(eq(profileTimeSlots.profileId, p.id)).run();
+        tx.delete(workerCapabilities).where(eq(workerCapabilities.profileId, p.id)).run();
+        tx.update(workers).set({ fixedProfileId: null }).where(eq(workers.fixedProfileId, p.id)).run();
+        tx.delete(profiles).where(eq(profiles.id, p.id)).run();
+      }
+      
+      return tx.delete(areas).where(eq(areas.id, areaId)).returning().get();
+    });
       
     if (!result) return res.status(404).json({ error: 'Area not found' });
     res.json({ success: true, deleted: result });

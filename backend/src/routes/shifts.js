@@ -8,7 +8,7 @@ const router = express.Router();
 // GET all shifts
 router.get('/', (req, res) => {
   try {
-    const allShifts = db.select().from(shifts).where(eq(shifts.isDeleted, false)).all();
+    const allShifts = db.select().from(shifts).all();
     res.json(allShifts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -48,8 +48,7 @@ router.put('/:id', (req, res) => {
 // DELETE shift (Soft Delete)
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.update(shifts)
-      .set({ isDeleted: true })
+    const result = db.delete(shifts)
       .where(eq(shifts.id, Number(req.params.id)))
       .returning()
       .get();

@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
-const { profiles, profileTimeSlots } = require('../db/schema');
+const { profiles, profileTimeSlots, workerCapabilities, workers } = require('../db/schema');
 const { eq } = require('drizzle-orm');
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 // GET all profiles with their timeslots
 router.get('/', (req, res) => {
   try {
-    const allProfiles = db.select().from(profiles).where(eq(profiles.isDeleted, false)).all();
+    const allProfiles = db.select().from(profiles).all();
     const allSlots = db.select().from(profileTimeSlots).all();
     
     // Group slots by profileId
@@ -46,6 +46,9 @@ router.post('/', (req, res) => {
           endTime: slot.endTime
         }));
         tx.insert(profileTimeSlots).values(slotsToInsert).run();
+        newProfile.timeSlots = slotsToInsert;
+      } else {
+        newProfile.timeSlots = [];
       }
       
       return newProfile;
@@ -88,6 +91,9 @@ router.put('/:id', (req, res) => {
           endTime: slot.endTime
         }));
         tx.insert(profileTimeSlots).values(slotsToInsert).run();
+        updatedProfile.timeSlots = slotsToInsert;
+      } else {
+        updatedProfile.timeSlots = [];
       }
       
       return updatedProfile;
@@ -104,11 +110,12 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const profileId = Number(req.params.id);
-    const result = db.update(profiles)
-      .set({ isDeleted: true })
-      .where(eq(profiles.id, profileId))
-      .returning()
-      .get();
+    const result = db.transaction((tx) => {
+      tx.delete(profileTimeSlots).where(eq(profileTimeSlots.profileId, profileId)).run();
+      tx.delete(workerCapabilities).where(eq(workerCapabilities.profileId, profileId)).run();
+      tx.update(workers).set({ fixedProfileId: null }).where(eq(workers.fixedProfileId, profileId)).run();
+      return tx.delete(profiles).where(eq(profiles.id, profileId)).returning().get();
+    });
       
     if (!result) return res.status(404).json({ error: 'Profile not found' });
     res.json({ success: true, deleted: result });

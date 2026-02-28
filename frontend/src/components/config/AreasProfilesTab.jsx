@@ -21,9 +21,16 @@ export default function AreasProfilesTab() {
   
   // Accordion State
   const [expandedAreas, setExpandedAreas] = useState({});
+  const [expandedShifts, setExpandedShifts] = useState({});
+  const [groupByShift, setGroupByShift] = useState(false);
+  const [areaToDelete, setAreaToDelete] = useState(null);
+  const [profileToDelete, setProfileToDelete] = useState(null);
 
   const toggleArea = (areaId) => {
     setExpandedAreas(prev => ({ ...prev, [areaId]: !prev[areaId] }));
+  };
+  const toggleShift = (shiftId) => {
+    setExpandedShifts(prev => ({ ...prev, [shiftId]: !prev[shiftId] }));
   };
 
   // --- AREA MODAL ---
@@ -120,111 +127,185 @@ export default function AreasProfilesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
         <div>
           <h2 className="text-xl font-semibold">Áreas y Perfiles</h2>
-          <p className="text-sm text-muted-foreground">Gestiona las zonas del hospital y sus respectivas "sillas".</p>
+          <p className="text-sm text-muted-foreground mt-1">Gestiona las zonas del hospital y sus respectivas "sillas".</p>
         </div>
-        <Button onClick={openNewArea} className="gap-2"><Plus size={16}/> Nueva Área</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-muted/50 p-1 rounded-lg">
+            <Button type="button" variant={!groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(false)} className="h-8 px-3 text-xs">Por Áreas</Button>
+            <Button type="button" variant={groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(true)} className="h-8 px-3 text-xs">Por Turnos</Button>
+          </div>
+          <Button onClick={openNewArea} className="gap-2 shrink-0 h-9"><Plus size={16}/> Nueva Área</Button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {areas.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-            No hay áreas creadas. Empieza creando tu primera área (Ej. Urgencias).
-          </div>
-        ) : areas.map(area => {
-          const areaProfiles = profiles.filter(p => p.areaId === area.id);
-          const isExpanded = expandedAreas[area.id];
+        {!groupByShift ? (
+          // --- RENDER BY AREA (Default) ---
+          areas.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              No hay áreas creadas. Empieza creando tu primera área (Ej. Urgencias).
+            </div>
+          ) : areas.map(area => {
+            const areaProfiles = profiles.filter(p => p.areaId === area.id);
+            const isExpanded = expandedAreas[area.id];
 
-          return (
-            <div key={area.id} className="border rounded-lg bg-card overflow-hidden shadow-sm">
-              {/* Accordion Header */}
-              <div className="flex items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors">
-                <div 
-                  className="flex items-center gap-3 cursor-pointer flex-1"
-                  onClick={() => toggleArea(area.id)}
-                >
-                  {isExpanded ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground"/>}
-                  <div className="w-5 h-5 rounded" style={{ backgroundColor: area.color }} />
-                  <span className="font-semibold text-lg">{area.name}</span>
-                  <span className="text-muted-foreground text-sm">({areaProfiles.length} perfil{areaProfiles.length === 1 ? '' : 'es'})</span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => openEditArea(area)}><Edit2 size={16}/></Button>
-                  <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={async () => {
-                    if (confirm(`¿Borrar el área ${area.name}? (Borrado lógico)`)) await deleteArea(area.id);
-                  }}><Trash2 size={16}/></Button>
-                </div>
-              </div>
-
-              {/* Accordion Body */}
-              {isExpanded && (
-                <div className="p-4 pt-1 bg-muted/10 border-t space-y-2">
-                  {areaProfiles.length === 0 ? (
-                    <div className="text-sm text-muted-foreground px-4 py-2 italic font-light">Sin perfiles en esta área.</div>
-                  ) : areaProfiles.map(profile => {
-                    // Profile Item
-                    const summary = profile.timeSlots && profile.timeSlots.length > 0 
-                      ? `${profile.timeSlots[0].startTime} — ${profile.timeSlots[0].endTime}`
-                      : 'Sin horario';
-
-                    return (
-                      <div key={profile.id} className={`flex items-center bg-background border rounded-md p-3 mx-2 transition-opacity shadow-sm ${!profile.isActive ? 'opacity-50' : ''}`}>
-                        <div className="w-1 h-8 rounded-full mr-3" style={{ backgroundColor: area.color }} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-[15px] leading-none">{profile.name}</h4>
-                            {!profile.isActive && <span className="bg-muted text-foreground text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold">Inactivo</span>}
-                          </div>
-                          <div className="flex flex-col mt-2">
-                            <div className="flex gap-1 flex-wrap">
-                              {DAYS.map(d => {
-                                const slot = profile.timeSlots?.find(s => s.dayOfWeek === d.id);
-                                return (
-                                  <div key={d.id} className={`text-xs border px-2 py-1 rounded w-max flex items-center gap-1 ${slot ? 'border-primary/30 bg-primary/5 text-foreground' : 'border-dashed text-muted-foreground opacity-50'}`}>
-                                    <span className="font-medium">{d.short}</span>
-                                    {slot && <span className="text-[10px] opacity-75">{slot.startTime}</span>}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                            {profile.minBackupWorkers > 0 && (
-                              <div className="text-xs mt-2 flex items-center gap-1 text-orange-500 font-medium">
-                                <ShieldAlert size={12}/> {profile.minBackupWorkers} backups min.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 ml-4 border-l pl-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            title={profile.isActive ? "Desactivar perfil" : "Reactivar perfil"}
-                            onClick={() => updateProfile(profile.id, { ...profile, isActive: !profile.isActive })}
-                          >
-                            {profile.isActive ? <PowerOff size={16} className="text-muted-foreground"/> : <Power size={16} className="text-primary"/>}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEditProfile(profile)}><Edit2 size={16}/></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={async () => {
-                            if (confirm(`¿Borrar el perfil ${profile.name}? (Borrado lógico, desaparecerá de la lista)`)) await deleteProfile(profile.id);
-                          }}><Trash2 size={16}/></Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+            return (
+              <div key={area.id} className="border rounded-lg bg-card overflow-hidden shadow-sm">
+                {/* Accordion Header */}
+                <div className="flex items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleArea(area.id)}>
+                    {isExpanded ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground"/>}
+                    <div className="w-5 h-5 rounded" style={{ backgroundColor: area.color }} />
+                    <span className="font-semibold text-lg">{area.name}</span>
+                    <span className="text-muted-foreground text-sm">({areaProfiles.length} perfil{areaProfiles.length === 1 ? '' : 'es'})</span>
+                  </div>
                   
-                  <div className="mx-2 mt-2">
-                    <Button variant="ghost" className="w-full border border-dashed text-muted-foreground hover:bg-muted" onClick={() => openNewProfile(area.id)}>
-                      <Plus size={16} className="mr-2"/> Añadir perfil a {area.name}
-                    </Button>
+                  <div className="flex items-center gap-1 shrink-0 px-2">
+                    <Button variant="ghost" size="icon" title="Añadir Perfil" onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={16}/></Button>
+                    <Button variant="ghost" size="icon" title="Editar Área" onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={16}/></Button>
+                    <Button variant="ghost" size="icon" title="Eliminar Área" className="text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={16}/></Button>
                   </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {/* Accordion Body */}
+                {isExpanded && (
+                  <div className="p-4 bg-muted/10 border-t space-y-4">
+                    {areaProfiles.length === 0 ? (
+                      <div className="text-sm text-muted-foreground px-4 py-2 italic font-light">Sin perfiles en esta área.</div>
+                    ) : (
+                      [...shifts, { id: 'none', name: 'Sin Turno Asignado' }].map(shift => {
+                        const shiftProfiles = areaProfiles.filter(p => shift.id === 'none' ? !p.shiftId : p.shiftId === shift.id);
+                        if (shiftProfiles.length === 0) return null;
+
+                        return (
+                          <div key={shift.id} className="border rounded-md overflow-hidden bg-background">
+                            <div className="bg-muted/30 px-3 py-2 flex items-center gap-2 border-b">
+                              <span className="font-semibold text-sm text-primary">{shift.name}</span>
+                            </div>
+                            <div className="p-2 space-y-2">
+                              {shiftProfiles.map(profile => (
+                                <div key={profile.id} className={`flex items-center bg-background border rounded-md p-2 transition-opacity shadow-sm ${!profile.isActive ? 'opacity-50' : ''}`}>
+                                  <div className="flex-1 min-w-0 pl-2">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-sm leading-none truncate">{profile.name}</h4>
+                                      {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">Inactivo</span>}
+                                    </div>
+                                    <div className="flex gap-1 flex-wrap mt-1.5">
+                                      {DAYS.map(d => {
+                                        const slot = profile.timeSlots?.find(s => s.dayOfWeek === d.id);
+                                        if(!slot) return null;
+                                        return (
+                                          <div key={d.id} className="text-[9px] border border-primary/30 bg-primary/5 px-1 py-0.5 rounded flex items-center gap-1 font-medium text-foreground">
+                                            <span>{d.short}</span><span className="opacity-75">{slot.startTime}</span>
+                                          </div>
+                                        );
+                                      })}
+                                      {profile.minBackupWorkers > 0 && (
+                                        <div className="text-[9px] border border-orange-200/50 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-900/20 px-1 py-0.5 rounded flex items-center gap-1 font-medium text-orange-600 dark:text-orange-400">
+                                          <ShieldAlert size={10}/> {profile.minBackupWorkers} min
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 ml-4 border-l pl-2 shrink-0">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProfile(profile.id, { ...profile, isActive: !profile.isActive })}>
+                                      {profile.isActive ? <PowerOff size={14} className="text-muted-foreground"/> : <Power size={14} className="text-primary"/>}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditProfile(profile)}><Edit2 size={14}/></Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setProfileToDelete(profile)}><Trash2 size={14}/></Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          // --- RENDER BY SHIFT ---
+          [...shifts, { id: 'none', name: 'Sin Turno Asignado' }].map(shift => {
+            const shiftProfiles = profiles.filter(p => shift.id === 'none' ? !p.shiftId : p.shiftId === shift.id);
+            if (shiftProfiles.length === 0) return null;
+
+            const isExpanded = expandedShifts[shift.id];
+
+            return (
+              <div key={shift.id} className="border border-primary/20 rounded-lg bg-card overflow-hidden shadow-sm">
+                {/* Accordion header for Shift */}
+                <div className="flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => toggleShift(shift.id)}>
+                  <div className="flex items-center gap-3">
+                    {isExpanded ? <ChevronDown size={18} className="text-primary"/> : <ChevronRight size={18} className="text-primary"/>}
+                    <span className="font-semibold text-lg text-primary">{shift.name}</span>
+                    <span className="text-muted-foreground text-sm">({shiftProfiles.length} perfil{shiftProfiles.length === 1 ? '' : 'es'})</span>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="p-4 space-y-4 bg-muted/10 border-t border-primary/10">
+                    {areas.map(area => {
+                      const areaProfiles = shiftProfiles.filter(p => p.areaId === area.id);
+                      if (areaProfiles.length === 0) return null;
+
+                      return (
+                        <div key={area.id} className="border rounded-md overflow-hidden bg-background">
+                          <div className="bg-muted/30 px-3 py-1 flex items-center justify-between border-b">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded" style={{ backgroundColor: area.color }} />
+                              <span className="font-semibold text-sm">{area.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0 px-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Añadir Perfil a esta Área" onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={14}/></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar Área" onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={14}/></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Eliminar Área" onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={14}/></Button>
+                            </div>
+                          </div>
+                          <div className="p-2 space-y-2">
+                            {areaProfiles.map(profile => (
+                              <div key={profile.id} className={`flex items-center bg-background border rounded-md p-2 transition-opacity shadow-sm ${!profile.isActive ? 'opacity-50' : ''}`}>
+                                <div className="flex-1 min-w-0 pl-2">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-sm leading-none truncate">{profile.name}</h4>
+                                    {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">Inactivo</span>}
+                                  </div>
+                                  <div className="flex gap-1 flex-wrap mt-1.5">
+                                    {DAYS.map(d => {
+                                      const slot = profile.timeSlots?.find(s => s.dayOfWeek === d.id);
+                                      if(!slot) return null;
+                                      return (
+                                        <div key={d.id} className="text-[9px] border border-primary/30 bg-primary/5 px-1 py-0.5 rounded flex items-center gap-1 font-medium text-foreground">
+                                          <span>{d.short}</span><span className="opacity-75">{slot.startTime}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 ml-4 border-l pl-2 shrink-0">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProfile(profile.id, { ...profile, isActive: !profile.isActive })}>
+                                    {profile.isActive ? <PowerOff size={14} className="text-muted-foreground"/> : <Power size={14} className="text-primary"/>}
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditProfile(profile)}><Edit2 size={14}/></Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setProfileToDelete(profile)}><Trash2 size={14}/></Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* --- AREA MODAL --- */}
@@ -331,6 +412,34 @@ export default function AreasProfilesTab() {
             <Button type="submit">Guardar Perfil</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Area Modal */}
+      <Modal isOpen={!!areaToDelete} onClose={() => setAreaToDelete(null)} title="Eliminar Área">
+        <div className="space-y-4">
+          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el área <strong>{areaToDelete?.name}</strong>? Todo el contenido será borrado irreversiblemente.</p>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setAreaToDelete(null)}>Cancelar</Button>
+            <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
+              await deleteArea(areaToDelete.id);
+              setAreaToDelete(null);
+            }}>Eliminar</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Profile Modal */}
+      <Modal isOpen={!!profileToDelete} onClose={() => setProfileToDelete(null)} title="Eliminar Perfil">
+        <div className="space-y-4">
+          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el perfil <strong>{profileToDelete?.name}</strong>? Este borrado es definitivo y eliminará el perfil de los trabajadores vinculados.</p>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setProfileToDelete(null)}>Cancelar</Button>
+            <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
+              await deleteProfile(profileToDelete.id);
+              setProfileToDelete(null);
+            }}>Eliminar</Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

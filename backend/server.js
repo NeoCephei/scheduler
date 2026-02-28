@@ -12,6 +12,8 @@ const dbPath = path.resolve(__dirname, dbFile);
 const areasRouter = require('./src/routes/areas');
 const shiftsRouter = require('./src/routes/shifts');
 const profilesRouter = require('./src/routes/profiles');
+const workersRouter = require('./src/routes/workers');
+const absencesRouter = require('./src/routes/absences');
 
 app.use(cors());
 app.use(express.json());
@@ -39,6 +41,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/areas', areasRouter);
 app.use('/api/shifts', shiftsRouter);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/workers', workersRouter);
+app.use('/api/absences', absencesRouter);
 
 app.get('/', (req, res) => {
   res.send('Scheduler Backend API');
