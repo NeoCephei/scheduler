@@ -64,10 +64,15 @@ const absences = sqliteTable('absences', {
 const assignments = sqliteTable('assignments', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   profileId: integer('profile_id').notNull().references(() => profiles.id),
-  workerId: integer('worker_id').notNull().references(() => workers.id),
+  workerId: integer('worker_id').references(() => workers.id), // Nullable if forced to UNCOVERED
   date: text('date').notNull(),
-  role: text('role').notNull(), // 'MAIN', 'COVER', 'TRAINEE'
-  isOverride: integer('is_override', { mode: 'boolean' }).notNull().default(false)
+  role: text('role').notNull().default('MAIN')
+});
+
+const publishedMonths = sqliteTable('published_months', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  month: integer('month').notNull(),
+  year: integer('year').notNull()
 });
 
 module.exports = {
@@ -79,5 +84,6 @@ module.exports = {
   workers,
   workerCapabilities,
   absences,
-  assignments
+  assignments,
+  publishedMonths
 };

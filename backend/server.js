@@ -14,6 +14,9 @@ const shiftsRouter = require('./src/routes/shifts');
 const profilesRouter = require('./src/routes/profiles');
 const workersRouter = require('./src/routes/workers');
 const absencesRouter = require('./src/routes/absences');
+const holidaysRouter = require('./src/routes/holidays');
+const assignmentsRouter = require('./src/routes/assignments');
+const calendarRouter = require('./src/routes/calendar');
 
 app.use(cors());
 app.use(express.json());
@@ -43,6 +46,9 @@ app.use('/api/shifts', shiftsRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/workers', workersRouter);
 app.use('/api/absences', absencesRouter);
+app.use('/api/holidays', holidaysRouter);
+app.use('/api/assignments', assignmentsRouter);
+app.use('/api/calendar', calendarRouter);
 
 app.get('/', (req, res) => {
   res.send('Scheduler Backend API');

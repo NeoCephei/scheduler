@@ -7,6 +7,7 @@ import { Route as configRoute } from './routes/configuration'
 import { Route as staffRoute } from './routes/staff'
 import { Route as staffDetailRoute } from './routes/staff.$workerId'
 import { Route as absencesRoute } from './routes/absences'
+import { Route as calendarRoute } from './routes/calendar'
 
 import './index.css'
 import './i18n/config'
@@ -18,6 +19,7 @@ const routeTree = rootRoute.addChildren([
   staffRoute,
   staffDetailRoute,
   absencesRoute,
+  calendarRoute,
 ])
 
 // Create a new router instance

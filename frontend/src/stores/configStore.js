@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { AreasAPI, ShiftsAPI, ProfilesAPI } from '../lib/api';
+import { AreasAPI, ShiftsAPI, ProfilesAPI, HolidaysAPI } from '../lib/api';
 
 export const useConfigStore = create((set, get) => ({
   areas: [],
   shifts: [],
   profiles: [],
+  holidays: [],
   loading: false,
   error: null,
 
@@ -12,12 +13,13 @@ export const useConfigStore = create((set, get) => ({
     if (get().areas.length > 0 || get().loading) return; // Prevent double fetching in StrictMode
     set({ loading: true, error: null });
     try {
-      const [areas, shifts, profiles] = await Promise.all([
+      const [areas, shifts, profiles, holidays] = await Promise.all([
         AreasAPI.getAll(),
         ShiftsAPI.getAll(),
-        ProfilesAPI.getAll()
+        ProfilesAPI.getAll(),
+        HolidaysAPI.getAll()
       ]);
-      set({ areas, shifts, profiles, loading: false });
+      set({ areas, shifts, profiles, holidays, loading: false });
     } catch (error) {
       set({ error: error.message, loading: false });
     }
@@ -63,5 +65,19 @@ export const useConfigStore = create((set, get) => ({
   deleteProfile: async (id) => {
     await ProfilesAPI.delete(id);
     set({ profiles: get().profiles.filter(p => p.id !== id) });
+  },
+
+  // --- Holidays ---
+  addHoliday: async (data) => {
+    const newHoliday = await HolidaysAPI.create(data);
+    set({ holidays: [...get().holidays, newHoliday] });
+  },
+  updateHoliday: async (id, data) => {
+    const updated = await HolidaysAPI.update(id, data);
+    set({ holidays: get().holidays.map(h => h.id === id ? updated : h) });
+  },
+  deleteHoliday: async (id) => {
+    await HolidaysAPI.delete(id);
+    set({ holidays: get().holidays.filter(h => h.id !== id) });
   }
 }));

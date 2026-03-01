@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 // Subcomponents for tabs
 import AreasProfilesTab from '../components/config/AreasProfilesTab';
 import ShiftsTab from '../components/config/ShiftsTab';
+import HolidaysTab from '../components/config/HolidaysTab';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -31,6 +32,7 @@ function Configuration() {
   const tabs = [
     { id: 'areas-profiles', label: 'Áreas y Perfiles' },
     { id: 'shifts', label: 'Turnos (Plantillas Base)' },
+    { id: 'holidays', label: 'Festivos' },
   ];
 
   return (
@@ -60,6 +62,7 @@ function Configuration() {
         <CardContent className="p-0 sm:p-6">
           {activeTab === 'areas-profiles' && <AreasProfilesTab />}
           {activeTab === 'shifts' && <ShiftsTab />}
+          {activeTab === 'holidays' && <HolidaysTab />}
         </CardContent>
       </Card>
     </div>

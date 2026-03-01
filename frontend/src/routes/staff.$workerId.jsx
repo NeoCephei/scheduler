@@ -70,22 +70,56 @@ function WorkerDetailPage() {
     setAbsenceGroups(abs);
   };
 
-  const AbsenceCard = ({ absence }) => (
-    <div className="flex items-center justify-between p-3 border rounded-md bg-background shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5"><Calendar size={16} className="text-muted-foreground" /></div>
-        <div>
-          <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">
-            {ABSENCE_TYPE_LABELS[absence.type] || absence.type}
-          </span>
-          <p className="text-sm font-medium mt-1">{absence.dateStart} al {absence.dateEnd}</p>
-          {absence.note && <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-1.5 rounded-sm italic">{absence.note}</p>}
+  const AbsenceCard = ({ absence }) => {
+    const nowObj = new Date();
+    const now = new Date(nowObj.getTime() - (nowObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    let daysLeftStr = null;
+    let daysLeftColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+    if (absence.dateStart > now) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(absence.dateStart);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysLeftStr = diffDays === 1 ? 'Mañana' : `En ${diffDays} días`;
+    } else if (absence.dateEnd >= now) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(absence.dateEnd);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysLeftColor = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
+      if (diffDays === 0) daysLeftStr = "Termina hoy";
+      else if (diffDays === 1) daysLeftStr = "Termina mañana";
+      else daysLeftStr = `Quedan ${diffDays} días`;
+    }
+
+    return (
+      <div className={`flex items-center justify-between p-3 border rounded-md bg-background shadow-sm ${absence.dateEnd < now ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5"><Calendar size={16} className="text-muted-foreground" /></div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">
+                {ABSENCE_TYPE_LABELS[absence.type] || absence.type}
+              </span>
+              {daysLeftStr && (
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${daysLeftColor}`}>
+                  {daysLeftStr}
+                </span>
+              )}
+            </div>
+            <p className="text-sm font-medium mt-1">{absence.dateStart} al {absence.dateEnd}</p>
+            {absence.note && <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-1.5 rounded-sm italic">{absence.note}</p>}
+          </div>
         </div>
+        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 shrink-0"
+          onClick={() => setAbsenceToDelete(absence)}><Trash2 size={15} /></Button>
       </div>
-      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 shrink-0"
-        onClick={() => setAbsenceToDelete(absence)}><Trash2 size={15} /></Button>
-    </div>
-  );
+    );
+  };
 
   const selectClassName = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -107,9 +141,15 @@ function WorkerDetailPage() {
     <div className="flex-1 w-full p-8 space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Link to="/staff">
-          <Button variant="ghost" size="icon" className="mt-1"><ArrowLeft size={18} /></Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="mt-1" onClick={() => {
+          if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+            window.history.back();
+          } else {
+            window.location.href = '/staff';
+          }
+        }}>
+          <ArrowLeft size={18} />
+        </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold tracking-tight">{worker.name}</h1>

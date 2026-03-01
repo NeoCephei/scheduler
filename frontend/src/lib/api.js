@@ -41,3 +41,19 @@ export const AbsencesAPI = {
   update: (id, data) => api.put(`/absences/${id}`, data).then(res => res.data),
   delete: (id) => api.delete(`/absences/${id}`).then(res => res.data)
 };
+
+export const HolidaysAPI = {
+  getAll: () => api.get('/holidays').then(res => res.data),
+  create: (data) => api.post('/holidays', data).then(res => res.data),
+  update: (id, data) => api.put(`/holidays/${id}`, data).then(res => res.data),
+  delete: (id) => api.delete(`/holidays/${id}`).then(res => res.data)
+};
+
+export const CalendarAPI = {
+  getMatrix: (start, end) => api.get(`/calendar?start=${start}&end=${end}`).then(res => res.data)
+};
+
+export const AssignmentsAPI = {
+  createOrUpdate: (data) => api.post('/assignments', data).then(res => res.data),
+  delete: (id) => api.delete(`/assignments/${id}`).then(res => res.data)
+};
