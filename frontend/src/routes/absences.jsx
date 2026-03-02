@@ -21,6 +21,10 @@ export const Route = createRoute({
 function GlobalAbsencesPage() {
   const { absences, workersMap, absencesLoading, fetchGlobalAbsences, refreshGlobalAbsences } = useStaffStore();
   
+  useEffect(() => { 
+    fetchGlobalAbsences();
+  }, [fetchGlobalAbsences]);
+
   const [search, setSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('ALL');
 
@@ -187,9 +191,6 @@ function GlobalAbsencesPage() {
         <div className="flex gap-2 shrink-0">
           <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2 shrink-0">
             <Plus size={16} /> Añadir Ausencia
-          </Button>
-          <Button variant="outline" size="icon" onClick={refreshGlobalAbsences} className="shrink-0" title="Recargar panel">
-            <RefreshCw size={14} />
           </Button>
         </div>
       </div>

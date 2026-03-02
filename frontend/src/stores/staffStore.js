@@ -68,11 +68,10 @@ export const useStaffStore = create((set, get) => ({
 
   // Global Absences
   fetchGlobalAbsences: async () => {
-    if (get().absencesLoading || get().absencesLoaded) return;
+    if (get().absencesLoading) return;
     set({ absencesLoading: true, error: null });
     try {
-      // Also ensure workers are loaded to have the map available
-      if (get().workers.length === 0 && !get().loading) {
+      if (get().workers.length === 0) {
         const workers = await WorkersAPI.getAll();
         const workersMap = {};
         workers.forEach(w => workersMap[w.id] = w);
@@ -87,8 +86,18 @@ export const useStaffStore = create((set, get) => ({
 
   refreshGlobalAbsences: async () => {
     set({ absencesLoading: true, error: null });
-    const absences = await AbsencesAPI.getAll();
-    set({ absences, absencesLoaded: true, absencesLoading: false });
+    try {
+      if (get().workers.length === 0) {
+        const workers = await WorkersAPI.getAll();
+        const workersMap = {};
+        workers.forEach(w => workersMap[w.id] = w);
+        set({ workers, workersMap });
+      }
+      const absences = await AbsencesAPI.getAll();
+      set({ absences, absencesLoaded: true, absencesLoading: false });
+    } catch (error) {
+      set({ error: error.message, absencesLoading: false });
+    }
   },
 
   // Absences (managed locally per-worker, not cached globally)
