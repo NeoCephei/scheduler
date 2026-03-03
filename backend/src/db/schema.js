@@ -44,7 +44,15 @@ const workers = sqliteTable('workers', {
   substituteType: text('substitute_type'), // Only for SUPLENTE
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false),
-  notes: text('notes')
+  notes: text('notes'),
+  requiredHours: integer('required_hours').notNull().default(0), // Used directly for ESTUDIANTE category
+  shiftId: integer('shift_id').references(() => shifts.id), // Used for ESTUDIANTE category
+  trainingStartTime: text('training_start_time'), // HH:MM
+  trainingEndTime: text('training_end_time'), // HH:MM
+  tutorName: text('tutor_name'),
+  tutorContact: text('tutor_contact'),
+  practicumStartDate: text('practicum_start_date'),
+  practicumEndDate: text('practicum_end_date')
 });
 
 const workerCapabilities = sqliteTable('worker_capabilities', {
@@ -75,6 +83,17 @@ const publishedMonths = sqliteTable('published_months', {
   year: integer('year').notNull()
 });
 
+const traineeOperations = sqliteTable('trainee_operations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workerId: integer('worker_id').notNull().references(() => workers.id), // Both Staff and Students
+  targetProfileId: integer('target_profile_id').notNull().references(() => profiles.id), // Profile they are learning
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  status: text('status').notNull().default('ACTIVE'), // ACTIVE, PAUSED, COMPLETED
+  notes: text('notes'),
+  isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false)
+});
+
 module.exports = {
   areas,
   shifts,
@@ -85,5 +104,6 @@ module.exports = {
   workerCapabilities,
   absences,
   assignments,
-  publishedMonths
+  publishedMonths,
+  traineeOperations
 };

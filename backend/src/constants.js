@@ -4,7 +4,7 @@
  * Add or remove values here only — no code elsewhere needs to change.
  */
 
-const WORKER_CATEGORIES = ['FIJO', 'SUPLENTE'];
+const WORKER_CATEGORIES = ['FIJO', 'SUPLENTE', 'ESTUDIANTE'];
 
 const SUBSTITUTE_TYPES = [
   'EXTERNO',

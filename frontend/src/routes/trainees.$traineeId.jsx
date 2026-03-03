@@ -1,0 +1,606 @@
+import React, { useState, useEffect } from 'react';
+import { createRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Route as rootRoute } from './__root';
+import { TraineesAPI, WorkersAPI, AbsencesAPI } from '../lib/api';
+import { useConfigStore } from '../stores/configStore';
+import { useStaffStore } from '../stores/staffStore';
+import { useTraineeStore } from '../stores/traineeStore';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
+import { Input } from '../components/ui/Input';
+import { ABSENCE_TYPES, ABSENCE_TYPE_LABELS, SUBSTITUTE_TYPE_LABELS } from '../lib/constants';
+import { ArrowLeft, Plus, Trash2, AlertTriangle, Power, PowerOff, Calendar, GraduationCap, Clock, ClipboardCheck } from 'lucide-react';
+
+export const Route = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/trainees/$traineeId',
+  component: TraineeDetailPage,
+});
+
+function TraineeDetailPage() {
+  const { traineeId } = Route.useParams();
+  const { areas, profiles, holidays, shifts, fetchData } = useConfigStore();
+  const { toggleWorkerActive, updateWorker } = useStaffStore();
+  const { trainees, fetchTrainees, createTrainee, updateTrainee } = useTraineeStore();
+  const navigate = useNavigate();
+
+  const [worker, setWorker] = useState(null);
+  const [absenceGroups, setAbsenceGroups] = useState({ active: [], future: [], past: [] });
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('info');
+
+  // Absence modal
+  const [isAbsenceModalOpen, setAbsenceModalOpen] = useState(false);
+  const [absenceToDelete, setAbsenceToDelete] = useState(null);
+  const [absenceForm, setAbsenceForm] = useState({ type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
+  const [absenceError, setAbsenceError] = useState('');
+
+  // Options
+  const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // Trainee Modal
+  const [isTraineeModalOpen, setTraineeModalOpen] = useState(false);
+  const [traineeForm, setTraineeForm] = useState({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
+
+  const loadData = async () => {
+    setLoading(true);
+    await fetchData();
+    const [w, abs] = await Promise.all([
+      WorkersAPI.getById(Number(traineeId)),
+      AbsencesAPI.getByWorker(Number(traineeId)),
+      fetchTrainees()
+    ]);
+    setWorker(w);
+    setAbsenceGroups(abs);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, [traineeId]);
+
+  const getProfile = (id) => profiles.find(p => p.id === id);
+  const getArea = (areaId) => areas.find(a => a.id === areaId);
+
+  const handleAddAbsence = async (e) => {
+    e.preventDefault();
+    setAbsenceError('');
+    try {
+      await AbsencesAPI.create({ ...absenceForm, workerId: Number(traineeId) });
+      setAbsenceModalOpen(false);
+      setAbsenceForm({ type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
+      const abs = await AbsencesAPI.getByWorker(Number(traineeId));
+      setAbsenceGroups(abs);
+    } catch (err) {
+      setAbsenceError(err.response?.data?.error || 'Error al guardar la ausencia.');
+    }
+  };
+
+  const handleDeleteAbsence = async () => {
+    await AbsencesAPI.delete(absenceToDelete.id);
+    setAbsenceToDelete(null);
+    loadData();
+    useStaffStore.getState().fetchWorkers();
+    useStaffStore.getState().fetchGlobalAbsences();
+  };
+
+  const handleDeleteStudent = async () => {
+    setIsDeleting(true);
+    try {
+      await WorkersAPI.delete(worker.id);
+      useStaffStore.getState().fetchWorkers();
+      navigate({ to: '/trainees' });
+    } catch (e) {
+      console.error("Error deleting student:", e);
+      setIsDeleting(false);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleAddTraineeRecord = async (e) => {
+    e.preventDefault();
+    await createTrainee({
+      workerId: Number(traineeId),
+      ...traineeForm,
+      targetProfileId: parseInt(traineeForm.targetProfileId, 10)
+    });
+    setTraineeModalOpen(false);
+    setTraineeForm({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
+  };
+
+  const handleUpdateTraineeStatus = async (opId, newStatus) => {
+    await updateTrainee(opId, { status: newStatus });
+  };
+
+  const handleHire = async () => {
+    if (confirm(`¿Estás seguro de contratar a ${worker.name} como Suplente oficial? Pasará a formar parte de la plantilla oficial y saldrá de la lista de estudiantes.`)) {
+      await updateWorker(worker.id, { category: 'SUPLENTE' });
+      window.location.href = `/staff/${worker.id}`;
+    }
+  };
+
+  const workerTrainees = trainees.filter(t => t.workerId === Number(traineeId));
+  
+  // Calculate trainee general status based on periods
+  let generalStatus = 'PENDING';
+  let badgeColor = 'bg-gray-100 text-gray-600';
+  let badgeLabel = 'Pendiente Inicialización';
+  
+  if (workerTrainees.some(t => t.status === 'ACTIVE')) {
+    generalStatus = 'ACTIVE';
+    badgeColor = 'bg-green-100 text-green-700 border-green-200';
+    badgeLabel = 'En curso (Activo)';
+  } else if (workerTrainees.some(t => t.status === 'PAUSED')) {
+    generalStatus = 'PAUSED';
+    badgeColor = 'bg-orange-100 text-orange-700 border-orange-200';
+    badgeLabel = 'Pausado / Detenido';
+  } else if (workerTrainees.length > 0 && workerTrainees.every(t => t.status === 'COMPLETED')) {
+    generalStatus = 'COMPLETED';
+    badgeColor = 'bg-blue-100 text-blue-700 border-blue-200';
+    badgeLabel = 'Prácticas Completadas';
+  }
+
+  const AbsenceCard = ({ absence }) => {
+    const nowObj = new Date();
+    const now = new Date(nowObj.getTime() - (nowObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    let daysLeftStr = null;
+    let daysLeftColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+    if (absence.dateStart > now) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(absence.dateStart);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysLeftStr = diffDays === 1 ? 'Mañana' : `En ${diffDays} días`;
+    } else if (absence.dateEnd >= now) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(absence.dateEnd);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysLeftColor = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
+      if (diffDays === 0) daysLeftStr = "Termina hoy";
+      else if (diffDays === 1) daysLeftStr = "Termina mañana";
+      else daysLeftStr = `Quedan ${diffDays} días`;
+    }
+
+    return (
+      <div className={`flex items-center justify-between p-3 border rounded-md bg-background shadow-sm ${absence.dateEnd < now ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5"><Calendar size={16} className="text-muted-foreground" /></div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">
+                {ABSENCE_TYPE_LABELS[absence.type] || absence.type}
+              </span>
+              {daysLeftStr && (
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${daysLeftColor}`}>
+                  {daysLeftStr}
+                </span>
+              )}
+            </div>
+            <p className="text-sm font-medium mt-1">{absence.dateStart} al {absence.dateEnd}</p>
+            {absence.note && <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-1.5 rounded-sm italic">{absence.note}</p>}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 shrink-0"
+          onClick={() => setAbsenceToDelete(absence)}><Trash2 size={15} /></Button>
+      </div>
+    );
+  };
+
+  const calculateEffectiveDays = (start, end) => {
+    if (!start || !end || new Date(start) > new Date(end)) return 0;
+    const s = new Date(start);
+    const e = new Date(end);
+    let days = 0;
+    const cur = new Date(s);
+    while (cur <= e) {
+      if (cur.getDay() !== 0 && cur.getDay() !== 6) days++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    const holidayDays = holidays.filter(h => {
+      const hDate = new Date(h.date);
+      return h.date >= start && h.date <= end && hDate.getDay() !== 0 && hDate.getDay() !== 6;
+    }).length;
+    return Math.max(0, days - holidayDays);
+  };
+
+  const getShiftHours = (shiftId) => {
+    const shift = shifts.find(s => s.id === shiftId);
+    if (!shift) return 0;
+    const [h1, m1] = shift.startTime.split(':').map(Number);
+    const [h2, m2] = shift.endTime.split(':').map(Number);
+    let diff = (h2 + m2 / 60) - (h1 + m1 / 60);
+    if (diff < 0) diff += 24; // Cross midnight
+    return diff;
+  };
+
+  const getDailyHours = (start, end) => {
+    if (!start || !end) return 0;
+    const s = new Date(`1970-01-01T${start}:00`);
+    const e = new Date(`1970-01-01T${end}:00`);
+    if (isNaN(s) || isNaN(e)) return 0;
+    let diff = (e - s) / 3600000;
+    if (diff < 0) diff += 24;
+    return diff;
+  };
+
+  const selectClassName = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-[!optional]:text-muted-foreground outline-none";
+
+  if (loading) return <div className="p-8 text-muted-foreground">Cargando ficha de estudiante...</div>;
+  if (!worker) return <div className="p-8 text-destructive">Estudiante no encontrado.</div>;
+
+  const totalAbsences = absenceGroups.active.length + absenceGroups.future.length + absenceGroups.past.length;
+
+  const tabs = [
+    { id: 'info', label: 'Información Prácticas' },
+    { id: 'absences', label: `Ausencias (${totalAbsences})` },
+    { id: 'analytics', label: 'Analíticas' }
+  ];
+
+  return (
+    <div className="flex-1 w-full p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <Button variant="ghost" size="icon" className="mt-1" onClick={() => {
+          if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+            window.history.back();
+          } else {
+            window.location.href = '/trainees';
+          }
+        }}>
+          <ArrowLeft size={18} />
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold tracking-tight">{worker.name}</h1>
+            <span className={`text-[11px] font-bold uppercase px-2.5 py-1 border rounded-md ${badgeColor}`}>
+              {badgeLabel}
+            </span>
+            {!worker.isActive && <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-red-500">Desactivado</span>}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1.5 font-medium flex gap-4">
+            <span className="flex items-center gap-1"><GraduationCap size={14}/> {SUBSTITUTE_TYPE_LABELS[worker.substituteType] || worker.substituteType}</span>
+            {worker.shiftId && (
+              <span className="flex items-center gap-1">
+                <Clock size={14}/> 
+                Turno Asignado: {shifts.find(s => s.id === worker.shiftId)?.name || 'Desconocido'} 
+              </span>
+            )}
+            {worker.trainingStartTime && worker.trainingEndTime && <span className="flex items-center gap-1"><Calendar size={14}/> {worker.trainingStartTime} - {worker.trainingEndTime} ({getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h/día)</span>}
+            {worker.requiredHours && <span className="flex items-center gap-1"><ClipboardCheck size={14}/> {worker.requiredHours}h Globales ({worker.practicumStartDate} al {worker.practicumEndDate})</span>}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => toggleWorkerActive(worker.id).then(() => loadData())} className="gap-1.5 justify-start">
+            {worker.isActive ? <><PowerOff size={14} className="text-destructive"/> Desactivar</> : <><Power size={14} className="text-primary"/> Activar</>}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(true)} className="gap-1.5 justify-start text-destructive hover:bg-destructive hover:text-white shadow-sm border-destructive/20">
+            <Trash2 size={14}/> Borrar Permanentemente
+          </Button>
+          {(generalStatus === 'COMPLETED' || (generalStatus === 'PENDING' && workerTrainees.length > 0)) && (
+            <Button size="sm" onClick={handleHire} className="gap-1.5 justify-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+              <GraduationCap size={14} /> Fichar como Suplente
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs Menu */}
+      <div className="flex space-x-1 border-b">
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted'}`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content: Info */}
+      {activeTab === 'info' && (
+        <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          
+          <div className="grid md:grid-cols-[1fr,300px] gap-8">
+            <div className="space-y-6">
+              {/* TRAINEE BLOCK */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold tracking-tight">Periodos de Formación</h3>
+                  {worker.isActive && (
+                    <Button size="sm" variant="outline" onClick={() => setTraineeModalOpen(true)} className="gap-2">
+                      <Plus size={16} /> Iniciar Periodo
+                    </Button>
+                  )}
+                </div>
+                
+                {workerTrainees.length > 0 ? (
+                  <div className="grid gap-3">
+                    {workerTrainees.map(t => {
+                      const targetProfile = getProfile(t.targetProfileId);
+                      const targetArea = targetProfile ? getArea(targetProfile.areaId) : null;
+                      return (
+                        <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${t.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : t.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                {t.status === 'ACTIVE' ? 'En curso' : t.status === 'COMPLETED' ? 'Completado' : 'Pausado'}
+                              </span>
+                              <span className="text-sm font-semibold flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: targetArea?.color }} />
+                                {targetArea?.name} / {targetProfile?.name}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Del {new Date(t.startDate).toLocaleDateString()} al {new Date(t.endDate).toLocaleDateString()}
+                            </p>
+                            {t.notes && <p className="text-xs bg-muted/40 p-2 mt-2 rounded border">{t.notes}</p>}
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">Pausar</Button>}
+                            {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">Reanudar</Button>}
+                            {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">Superado</Button>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="h-24 flex flex-col items-center justify-center border border-dashed rounded-lg text-sm text-muted-foreground bg-muted/10">
+                    <p>El estudiante no tiene periodos de formación asignados.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* General Info Sidebar */}
+            <div className="space-y-6">
+              {(worker.tutorName || worker.tutorContact) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Responsable / Tutor</h3>
+                  <div className="bg-muted/10 border rounded-lg p-3 text-sm flex flex-col gap-1">
+                    {worker.tutorName && <div className="font-semibold">{worker.tutorName}</div>}
+                    {worker.tutorContact && <div className="text-muted-foreground">{worker.tutorContact}</div>}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Anotaciones</h3>
+                {worker.notes ? (
+                  <p className="text-sm bg-muted/30 border rounded-lg p-3 whitespace-pre-wrap leading-relaxed">{worker.notes}</p>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">Sin anotaciones.</span>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Perfiles a aprender</h3>
+                </div>
+                {worker.practicumStartDate && worker.practicumEndDate && worker.capabilities?.length > 0 && (
+                  <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm text-foreground">
+                    <p className="font-semibold text-primary mb-2 flex items-center gap-2"><Calendar size={16}/> Calendario de Rotaciones Sugerido</p>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-muted-foreground mb-3">
+                        Total a cubrir: <strong>{worker.requiredHours}h</strong> a {getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h/día.<br/>
+                        Días hábiles estimados: <strong>{calculateEffectiveDays(worker.practicumStartDate, worker.practicumEndDate)} días</strong>.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="bg-background border rounded-md p-2 flex flex-col items-center justify-center text-center">
+                          <span className="text-2xl font-bold text-primary">{Math.ceil(calculateEffectiveDays(worker.practicumStartDate, worker.practicumEndDate) / worker.capabilities.length)}</span>
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">Días por Perfil</span>
+                        </div>
+                        <div className="bg-background border rounded-md p-2 flex flex-col items-center justify-center text-center">
+                          <span className="text-2xl font-bold text-primary">{worker.capabilities.length}</span>
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">Rotaciones Totales</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3 italic leading-relaxed">
+                        Tú decides qué perfil activa el estudiante en cada momento. Utiliza esta sugerencia para asegurarte de que pase tiempo equitativo en los {worker.capabilities.length} perfiles autorizados a lo largo del periodo de prácticas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {worker.capabilities?.length > 0 ? (
+                  <div className="space-y-3">
+                    {areas.map(area => {
+                      const capProfiles = profiles.filter(p => p.areaId === area.id && worker.capabilities.includes(p.id));
+                      if (capProfiles.length === 0) return null;
+                      return (
+                        <div key={area.id} className="border rounded-lg overflow-hidden shadow-sm">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
+                            <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: area.color }} />
+                            <span className="text-xs font-semibold">{area.name}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 p-2">
+                            {capProfiles.map(p => (
+                              <span key={p.id} className="text-[11px] font-medium bg-background border px-2 py-0.5 rounded-md text-muted-foreground">{p.name}</span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 flex items-center justify-center border border-dashed rounded-lg text-xs text-muted-foreground text-center">
+                    No se han seleccionado perfiles a aprender para este estudiante.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: Absences */}
+      {activeTab === 'absences' && (
+        <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex justify-between items-end">
+            <h3 className="text-lg font-semibold tracking-tight">Registro de Ausencias</h3>
+            <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2"><Plus size={16} /> Registrar Falta Ausencia</Button>
+          </div>
+
+          <div className="grid gap-6">
+            {['active', 'future', 'past'].map(group => {
+              const labelMap = { active: 'En curso (Activas)', future: 'Próximas (Futuras)', past: 'Historial (Pasadas)' };
+              const colorMap = { active: 'text-red-600 dark:text-red-400', future: 'text-blue-600 dark:text-blue-400', past: 'text-muted-foreground' };
+              const items = absenceGroups[group] || [];
+              
+              if (items.length === 0 && group === 'past') return null;
+
+              return (
+                <div key={group}>
+                  <h4 className={`text-sm font-semibold mb-3 ${colorMap[group]}`}>{labelMap[group]}</h4>
+                  {items.length === 0 ? (
+                    <div className="p-4 text-center border border-dashed rounded-lg text-sm text-muted-foreground">
+                      No hay ausencias registradas en este bloque.
+                    </div>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {items.map(a => <AbsenceCard key={a.id} absence={a} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: Analytics */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="border rounded-xl p-5 text-center bg-card shadow-sm">
+              <p className="text-4xl font-bold tracking-tighter text-red-500">{totalAbsences}</p>
+              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Faltas Registradas</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-xl bg-muted/10">
+            <AlertTriangle className="text-muted-foreground/50 mb-3" size={32} />
+            <h3 className="font-semibold text-lg">Métricas Horarias de Prácticas</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">El conteo real de horas completadas según turnos diarios estará disponible al finalizar el módulo de Analíticas del Dashboard en la Fase 6.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); }} title="Registrar Falta del Estudiante" className="max-w-md">
+        <form onSubmit={handleAddAbsence} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Motivo</label>
+            <select className={selectClassName} value={absenceForm.type} onChange={e => setAbsenceForm({ ...absenceForm, type: e.target.value })}>
+              {ABSENCE_TYPES.map(t => <option key={t} value={t}>{ABSENCE_TYPE_LABELS[t]}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Desde</label>
+              <Input required type="date" value={absenceForm.dateStart} onChange={e => setAbsenceForm({ ...absenceForm, dateStart: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hasta (Incluido)</label>
+              <Input required type="date" min={absenceForm.dateStart} value={absenceForm.dateEnd} onChange={e => setAbsenceForm({ ...absenceForm, dateEnd: e.target.value })} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex justify-between">
+              Notas adicionales
+              <span className="text-xs text-muted-foreground font-normal">Opcional</span>
+            </label>
+            <textarea className="flex w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="Cita médica, justificante de estudios..." />
+          </div>
+          
+          {absenceError && (
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm rounded-md border border-red-200 dark:border-red-800/50 flex items-start gap-2">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <span>{absenceError}</span>
+            </div>
+          )}
+          
+          <div className="pt-2 flex justify-end gap-2 border-t mt-6">
+            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>Cancelar</Button>
+            <Button type="submit">Guardar Falta</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!absenceToDelete} onClose={() => setAbsenceToDelete(null)} title="Eliminar Registro de Falta">
+        <div className="space-y-4">
+          <p className="text-sm">¿Deseas dar por válida esta ausencia (<strong>{absenceToDelete?.type && ABSENCE_TYPE_LABELS[absenceToDelete.type]}</strong>) y eliminarla del registro del estudiante para los días <strong>{absenceToDelete?.dateStart}</strong> - <strong>{absenceToDelete?.dateEnd}</strong>?</p>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setAbsenceToDelete(null)}>Conservar</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>Sí, Eliminar permanentemente</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Student Modal */}
+      <Modal isOpen={isDeleteConfirmOpen} onClose={() => !isDeleting && setDeleteConfirmOpen(false)} title="Eliminar Estudiante">
+        <div className="space-y-4">
+          <p className="text-sm text-foreground">
+            ¿Estás seguro de que deseas eliminar permanentemente a <strong className="text-destructive">{worker.name}</strong> del sistema?
+          </p>
+          <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">
+            Esta acción <strong>no</strong> realizará un borrado suave. Eliminará al estudiante, sus ausencias, sus registros y estadísticas de formación histórica por completo. No se puede deshacer.
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={isDeleting}>Cancelar</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteStudent} disabled={isDeleting}>
+              {isDeleting ? 'Eliminando...' : 'Sí, Eliminar estudiante'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title="Registrar Periodo de Formación" className="max-w-md">
+        <form onSubmit={handleAddTraineeRecord} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Perfil a aprender</label>
+            <select className={selectClassName} required value={traineeForm.targetProfileId} onChange={e => setTraineeForm({...traineeForm, targetProfileId: e.target.value})}>
+              <option value="" disabled>Seleccionar perfil...</option>
+              {profiles.filter(p => p.isActive && worker.capabilities.includes(p.id)).map(p => (
+                <option key={p.id} value={p.id}>{getArea(p.areaId)?.name} / {p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Desde</label>
+              <Input required type="date" value={traineeForm.startDate} onChange={e => setTraineeForm({...traineeForm, startDate: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hasta</label>
+              <Input required type="date" min={traineeForm.startDate} value={traineeForm.endDate} onChange={e => setTraineeForm({...traineeForm, endDate: e.target.value})} />
+            </div>
+          </div>
+          
+          {traineeForm.startDate && traineeForm.endDate && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm flex items-start gap-3">
+              <Clock size={18} className="text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-primary">Sugerencia de Tiempo</p>
+                <div className="text-muted-foreground mt-1 space-y-1 text-xs">
+                  <p>Días útiles (L-V sin festivos): <strong>{calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate)} días</strong></p>
+                  <p>A un ritmo teórico de <strong>{getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h / día</strong>:</p>
+                  <p className="text-foreground pt-1 border-t border-primary/10 mt-1">Acumulará aprox: <strong>{((calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate) * getDailyHours(worker.trainingStartTime, worker.trainingEndTime))).toFixed(1)}h de prácticas en este perfil.</strong></p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notas / Tutor Encargado</label>
+            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder="Ej. Ana de mañanas..." />
+          </div>
+          <div className="pt-2 flex justify-end gap-2 border-t mt-6">
+            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Guardar Periodo</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}

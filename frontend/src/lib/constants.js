@@ -1,7 +1,7 @@
 // Frontend mirror of backend/src/constants.js
 // Keep both in sync if you add/remove values.
 
-export const WORKER_CATEGORIES = ['FIJO', 'SUPLENTE'];
+export const WORKER_CATEGORIES = ['FIJO', 'SUPLENTE', 'ESTUDIANTE'];
 
 export const SUBSTITUTE_TYPES = [
   'EXTERNO',

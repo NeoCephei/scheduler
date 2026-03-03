@@ -434,8 +434,10 @@ function GlobalAbsencesPage() {
             <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
               {impactModalData?.map((cell, idx) => {
                 const isUncovered = cell.status === 'UNCOVERED';
+                const isPast = cell.date < now;
+                
                 return (
-                  <div key={idx} className={`p-3 flex justify-between items-center text-sm ${isUncovered ? 'bg-red-50 dark:bg-red-950/20' : 'bg-card'}`}>
+                  <div key={idx} className={`p-3 flex justify-between items-center text-sm ${isUncovered ? 'bg-red-50 dark:bg-red-950/20' : 'bg-card'} ${isPast ? 'opacity-60 grayscale' : ''}`}>
                     <div>
                       <span className="font-semibold block">{new Date(cell.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                       <span className="text-muted-foreground text-xs">{cell.profileName} ({cell.timeSlot.startTime} - {cell.timeSlot.endTime})</span>
@@ -444,17 +446,21 @@ function GlobalAbsencesPage() {
                       <span className={`font-medium ${isUncovered ? 'text-red-500' : 'text-foreground'}`}>
                         {isUncovered ? 'Descubierto' : cell.allocatedWorkerName}
                       </span>
-                      <Button 
-                        size="sm" 
-                        variant={isUncovered ? 'default' : 'outline'}
-                        onClick={() => setSelectedCellForAssignment({ 
-                          profile: { profileId: cell.profileId, profileName: cell.profileName },
-                          date: cell.date,
-                          cellData: cell
-                        })}
-                      >
-                        {isUncovered ? 'Asignar' : 'Modificar'}
-                      </Button>
+                      {isPast ? (
+                        <Button size="sm" variant="ghost" disabled>Pasado</Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant={isUncovered ? 'default' : 'outline'}
+                          onClick={() => setSelectedCellForAssignment({ 
+                            profile: { profileId: cell.profileId, profileName: cell.profileName },
+                            date: cell.date,
+                            cellData: cell
+                          })}
+                        >
+                          {isUncovered ? 'Asignar' : 'Modificar'}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

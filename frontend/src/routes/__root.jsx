@@ -33,6 +33,9 @@ function RootComponent() {
             <Link to="/absences" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               Ausencias
             </Link>
+            <Link to="/trainees" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
+              Estudiantes
+            </Link>
             <Link to="/calendar" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               Calendario
             </Link>

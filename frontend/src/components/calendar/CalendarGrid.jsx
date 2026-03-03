@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useCalendarStore } from '../../stores/calendarStore';
 import { useConfigStore } from '../../stores/configStore';
-import { ShieldAlert, AlertCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle, GraduationCap } from 'lucide-react';
 import AssignmentModal from './AssignmentModal';
 
 const DAYS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -226,6 +226,8 @@ export default function CalendarGrid() {
                         // Profile works this day
                         const isUncovered = cell.status === 'UNCOVERED';
                         const isOverride = cell.isOverride;
+                        const hasTrainee = !!cell.trainee;
+                        const isTraineeAlone = hasTrainee && isUncovered;
                         
                         return (
                           <div 
@@ -236,12 +238,14 @@ export default function CalendarGrid() {
                               hover:ring-1 hover:ring-primary hover:z-10 hover:shadow-sm
                             `}
                           >
-                            <div className={`w-full h-full min-h-16 rounded-md p-1.5 flex flex-col justify-between border shadow-sm
-                              ${isUncovered 
-                                ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900/50' 
-                                : isOverride
-                                  ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/50'
-                                  : 'bg-background border-border/50'}
+                            <div className={`w-full h-full min-h-16 rounded-md p-1.5 flex flex-col justify-between border shadow-sm relative overflow-hidden
+                              ${isTraineeAlone 
+                                ? 'bg-red-50 border-red-400 dark:bg-red-950/50 dark:border-red-800' // High alert: trainee alone
+                                : isUncovered 
+                                  ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900/50' 
+                                  : isOverride
+                                    ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/50'
+                                    : 'bg-background border-border/50'}
                             `}>
                               {/* Time */}
                               <div className="text-[10px] text-muted-foreground font-medium flex justify-between items-start">
@@ -262,6 +266,18 @@ export default function CalendarGrid() {
                                   </span>
                                 )}
                               </div>
+
+                              {/* Trainee Footer */}
+                              {hasTrainee && (
+                                <div className={`absolute bottom-0 left-0 right-0 py-0.5 px-1 flex items-center justify-center gap-1 border-t
+                                  ${isTraineeAlone ? 'bg-red-500 text-white border-red-600' : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'}
+                                `}>
+                                  <GraduationCap size={10} className="shrink-0" />
+                                  <span className="text-[9px] font-bold leading-none truncate uppercase tracking-widest" title={cell.trainee.name}>
+                                    {cell.trainee.name}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

@@ -101,6 +101,9 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
 
     for (const worker of workers) {
       if (!worker.isActive || worker.isDeleted) continue;
+      
+      // Estudiantes ONLY practice, they can't cover a shift organically
+      if (worker.category === 'ESTUDIANTE') continue;
 
       // 1. Check Capabilities (Is Fijo here OR has Capability)
       const isFijoHere = worker.fixedProfileId === cellProfileId;

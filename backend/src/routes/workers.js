@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
-const { workers, workerCapabilities, absences } = require('../db/schema');
+const { workers, workerCapabilities, absences, assignments, traineeOperations } = require('../db/schema');
 const { eq } = require('drizzle-orm');
 const { WORKER_CATEGORIES, SUBSTITUTE_TYPES } = require('../constants');
 
@@ -46,20 +46,28 @@ router.get('/:id', (req, res) => {
 // CREATE worker with capabilities
 router.post('/', (req, res) => {
   try {
-    const { name, category, fixedProfileId, substituteType, notes, capabilities = [] } = req.body;
+    const { name, category, fixedProfileId, substituteType, notes, capabilities = [], requiredHours = 0, shiftId, trainingStartTime, trainingEndTime, tutorName, tutorContact, practicumStartDate, practicumEndDate } = req.body;
     
     if (!name || !category) return res.status(400).json({ error: 'name and category are required' });
     if (!WORKER_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Invalid category' });
     if (category === 'FIJO' && !fixedProfileId) return res.status(400).json({ error: 'fixedProfileId is required for FIJO workers' });
     if (category === 'SUPLENTE' && !substituteType) return res.status(400).json({ error: 'substituteType is required for SUPLENTE workers' });
-    if (substituteType && !SUBSTITUTE_TYPES.includes(substituteType)) return res.status(400).json({ error: 'Invalid substituteType' });
+    if (category === 'SUPLENTE' && substituteType && !SUBSTITUTE_TYPES.includes(substituteType)) return res.status(400).json({ error: 'Invalid substituteType for SUPLENTE' });
     
     const result = db.transaction((tx) => {
       const newWorker = tx.insert(workers).values({
         name,
         category,
         fixedProfileId: category === 'FIJO' ? fixedProfileId : null,
-        substituteType: category === 'SUPLENTE' ? substituteType : null,
+        substituteType: category === 'SUPLENTE' || category === 'ESTUDIANTE' ? substituteType : null,
+        requiredHours: category === 'ESTUDIANTE' ? Number(requiredHours) : 0,
+        shiftId: category === 'ESTUDIANTE' && shiftId ? Number(shiftId) : null,
+        trainingStartTime: category === 'ESTUDIANTE' ? trainingStartTime : null,
+        trainingEndTime: category === 'ESTUDIANTE' ? trainingEndTime : null,
+        tutorName: category === 'ESTUDIANTE' ? tutorName : null,
+        tutorContact: category === 'ESTUDIANTE' ? tutorContact : null,
+        practicumStartDate: category === 'ESTUDIANTE' ? practicumStartDate : null,
+        practicumEndDate: category === 'ESTUDIANTE' ? practicumEndDate : null,
         notes
       }).returning().get();
       
@@ -82,14 +90,22 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const workerId = Number(req.params.id);
-    const { name, category, fixedProfileId, substituteType, isActive, notes, capabilities } = req.body;
+    const { name, category, fixedProfileId, substituteType, isActive, notes, capabilities, requiredHours, shiftId, trainingStartTime, trainingEndTime, tutorName, tutorContact, practicumStartDate, practicumEndDate } = req.body;
     
     const result = db.transaction((tx) => {
       const updated = tx.update(workers).set({
         name,
         category,
         fixedProfileId: category === 'FIJO' ? fixedProfileId : null,
-        substituteType: category === 'SUPLENTE' ? substituteType : null,
+        substituteType: category === 'SUPLENTE' || category === 'ESTUDIANTE' ? substituteType : null,
+        requiredHours: category === 'ESTUDIANTE' ? Number(requiredHours || 0) : 0,
+        shiftId: category === 'ESTUDIANTE' && shiftId ? Number(shiftId) : null,
+        trainingStartTime: category === 'ESTUDIANTE' ? trainingStartTime : null,
+        trainingEndTime: category === 'ESTUDIANTE' ? trainingEndTime : null,
+        tutorName: category === 'ESTUDIANTE' ? tutorName : null,
+        tutorContact: category === 'ESTUDIANTE' ? tutorContact : null,
+        practicumStartDate: category === 'ESTUDIANTE' ? practicumStartDate : null,
+        practicumEndDate: category === 'ESTUDIANTE' ? practicumEndDate : null,
         isActive,
         notes
       }).where(eq(workers.id, workerId)).returning().get();
@@ -130,15 +146,30 @@ router.patch('/:id/toggle-active', (req, res) => {
   }
 });
 
-// SOFT DELETE worker
+// DELETE worker (Soft delete for STAFF, Hard delete for ESTUDIANTE)
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.update(workers)
-      .set({ isDeleted: true, isActive: false })
-      .where(eq(workers.id, Number(req.params.id)))
-      .returning().get();
-    if (!result) return res.status(404).json({ error: 'Worker not found' });
-    res.json({ success: true });
+    const workerId = Number(req.params.id);
+    const worker = db.select().from(workers).where(eq(workers.id, workerId)).get();
+    
+    if (!worker) return res.status(404).json({ error: 'Worker not found' });
+    
+    if (worker.category === 'ESTUDIANTE') {
+      db.transaction((tx) => {
+        tx.delete(workerCapabilities).where(eq(workerCapabilities.workerId, workerId)).run();
+        tx.delete(absences).where(eq(absences.workerId, workerId)).run();
+        tx.delete(assignments).where(eq(assignments.workerId, workerId)).run();
+        tx.delete(traineeOperations).where(eq(traineeOperations.workerId, workerId)).run();
+        tx.delete(workers).where(eq(workers.id, workerId)).run();
+      });
+      res.json({ success: true, hardDeleted: true });
+    } else {
+      db.update(workers)
+        .set({ isDeleted: true, isActive: false })
+        .where(eq(workers.id, workerId))
+        .run();
+      res.json({ success: true, softDeleted: true });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

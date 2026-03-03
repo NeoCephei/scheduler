@@ -4,6 +4,7 @@ import { Route as rootRoute } from './__root';
 import { WorkersAPI, AbsencesAPI } from '../lib/api';
 import { useConfigStore } from '../stores/configStore';
 import { useStaffStore } from '../stores/staffStore';
+import { useTraineeStore } from '../stores/traineeStore';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -20,6 +21,7 @@ function WorkerDetailPage() {
   const { workerId } = Route.useParams();
   const { areas, profiles, fetchData } = useConfigStore();
   const { toggleWorkerActive } = useStaffStore();
+  const { trainees, fetchTrainees, createTrainee, updateTrainee } = useTraineeStore();
 
   const [worker, setWorker] = useState(null);
   const [absenceGroups, setAbsenceGroups] = useState({ active: [], future: [], past: [] });
@@ -32,12 +34,17 @@ function WorkerDetailPage() {
   const [absenceForm, setAbsenceForm] = useState({ type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
   const [absenceError, setAbsenceError] = useState('');
 
+  // Trainee Modal
+  const [isTraineeModalOpen, setTraineeModalOpen] = useState(false);
+  const [traineeForm, setTraineeForm] = useState({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
+
   const loadData = async () => {
     setLoading(true);
     await fetchData();
     const [w, abs] = await Promise.all([
       WorkersAPI.getById(Number(workerId)),
-      AbsencesAPI.getByWorker(Number(workerId))
+      AbsencesAPI.getByWorker(Number(workerId)),
+      fetchTrainees()
     ]);
     setWorker(w);
     setAbsenceGroups(abs);
@@ -69,6 +76,23 @@ function WorkerDetailPage() {
     const abs = await AbsencesAPI.getByWorker(Number(workerId));
     setAbsenceGroups(abs);
   };
+
+  const handleAddTraineeRecord = async (e) => {
+    e.preventDefault();
+    await createTrainee({
+      workerId: Number(workerId),
+      ...traineeForm,
+      targetProfileId: parseInt(traineeForm.targetProfileId, 10)
+    });
+    setTraineeModalOpen(false);
+    setTraineeForm({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
+  };
+
+  const handleUpdateTraineeStatus = async (traineeId, newStatus) => {
+    await updateTrainee(traineeId, { status: newStatus });
+  };
+
+  const workerTrainees = trainees.filter(t => t.workerId === Number(workerId));
 
   const AbsenceCard = ({ absence }) => {
     const nowObj = new Date();
@@ -194,6 +218,52 @@ function WorkerDetailPage() {
               <p>Este trabajador de tipo Suplente no tiene capacidades definidas. <strong>No recibirá sugerencias</strong> del motor de auto-asignación hasta que se le asigne al menos un perfil.</p>
             </div>
           )}
+
+          {/* TRAINEE BLOCK */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold tracking-tight">Periodos de Formación (Trainee)</h3>
+              <Button size="sm" variant="outline" onClick={() => setTraineeModalOpen(true)} className="gap-2">
+                <Plus size={16} /> Añadir Formación
+              </Button>
+            </div>
+            
+            {workerTrainees.length > 0 ? (
+              <div className="grid gap-3">
+                {workerTrainees.map(t => {
+                  const targetProfile = getProfile(t.targetProfileId);
+                  const targetArea = targetProfile ? getArea(targetProfile.areaId) : null;
+                  return (
+                    <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${t.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : t.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {t.status === 'ACTIVE' ? 'Encurso' : t.status === 'COMPLETED' ? 'Completado' : 'Pausado'}
+                          </span>
+                          <span className="text-sm font-semibold flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: targetArea?.color }} />
+                            {targetArea?.name} / {targetProfile?.name}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Del {new Date(t.startDate).toLocaleDateString()} al {new Date(t.endDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">Pausar</Button>}
+                        {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">Reanudar</Button>}
+                        {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">Superado</Button>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="h-24 flex items-center justify-center border border-dashed rounded-lg text-sm text-muted-foreground bg-muted/10">
+                El trabajador no ha estado asignado a formaciones internas.
+              </div>
+            )}
+          </div>
 
           <div className="grid md:grid-cols-[1fr,300px] gap-8">
             {/* Capabilities */}
@@ -351,6 +421,47 @@ function WorkerDetailPage() {
             <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>Eliminar permanentemente</Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title="Registrar Periodo de Formación" className="max-w-md">
+        <form onSubmit={handleAddTraineeRecord} className="space-y-4">
+          {worker.category !== 'ESTUDIANTE' && (
+            <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-primary/20">
+              Durante las fechas seleccionadas, el trabajador será extraído de su puesto fijo y pasará a ser "Trainee" en el perfil seleccionado. Su puesto fijo quedará descubierto.
+            </p>
+          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Perfil a aprender</label>
+            <select className={selectClassName} required value={traineeForm.targetProfileId} onChange={e => setTraineeForm({...traineeForm, targetProfileId: e.target.value})}>
+              <option value="" disabled>Seleccionar perfil...</option>
+              {profiles.filter(p => {
+                if (!p.isActive) return false;
+                if (worker.category === 'ESTUDIANTE') return worker.capabilities?.includes(p.id);
+                return !worker.capabilities?.includes(p.id) && worker.fixedProfileId !== p.id;
+              }).map(p => (
+                <option key={p.id} value={p.id}>{getArea(p.areaId)?.name} / {p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Desde</label>
+              <Input required type="date" value={traineeForm.startDate} onChange={e => setTraineeForm({...traineeForm, startDate: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hasta</label>
+              <Input required type="date" min={traineeForm.startDate} value={traineeForm.endDate} onChange={e => setTraineeForm({...traineeForm, endDate: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notas / Tutor</label>
+            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder="Ej. Tutor asignado..." />
+          </div>
+          <div className="pt-2 flex justify-end gap-2 border-t mt-6">
+            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Iniciar Formación</Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
-const { profiles, profileTimeSlots, workers, workerCapabilities, absences, holidays, assignments, publishedMonths } = require('../db/schema');
+const { profiles, profileTimeSlots, workers, workerCapabilities, absences, holidays, assignments, publishedMonths, traineeOperations } = require('../db/schema');
 const { gte, lte, and, eq, inArray, isNull } = require('drizzle-orm');
 
 // Helper to check if a date string 'YYYY-MM-DD' is between two date strings
@@ -47,6 +47,18 @@ router.get('/', async (req, res) => {
       assignmentsMap[`${a.profileId}-${a.date}`] = a;
     });
 
+    // 4.1. Fetch Trainees and their absences
+    const activeTrainees = db.select().from(traineeOperations).where(
+      and(
+        eq(traineeOperations.status, 'ACTIVE'),
+        eq(traineeOperations.isDeleted, false),
+        lte(traineeOperations.startDate, end),
+        gte(traineeOperations.endDate, start)
+      )
+    ).all();
+
+    // Removed traineeAbsences fetch as all trainees are now workers and their absences are in the standard activeAbsences block
+
     const fixedWorkersMap = {}; // profileId -> worker
     allWorkers.forEach(w => {
       if (w.fixedProfileId && w.isActive && !w.isDeleted) {
@@ -58,6 +70,7 @@ router.get('/', async (req, res) => {
     
     // Iterate day by day
     let currentDate = new Date(startDate);
+    
     while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const jsDayOfWeek = currentDate.getDay(); // 0 Sunday, 1 Monday, ... 6 Saturday
@@ -67,6 +80,9 @@ router.get('/', async (req, res) => {
       if (isHoliday) {
         dbDayOfWeek = 8; // Special holiday timeslots map to 8
       }
+
+      // Track trainees already placed today to respect the 1 per slot rule
+      const traineesPlacedToday = {}; // profileId -> true/false
 
       for (const profile of allProfiles) {
         if (!profile.isActive) continue;
@@ -78,18 +94,55 @@ router.get('/', async (req, res) => {
         let status = 'COVERED';
         let allocatedWorker = null;
         let isOverride = false;
+        let trainee = null;
+        
+        // Find if any trainee is learning this profile today
+        // Find if any trainee is learning this profile today
+        // Trainees do not work on weekends (jsDayOfWeek 0 = Sunday, 6 = Saturday) or holidays
+        if (!isHoliday && jsDayOfWeek !== 0 && jsDayOfWeek !== 6) {
+          const activeTraineeForProfile = activeTrainees.find(t => 
+            t.targetProfileId === profile.id && 
+            isDateBetween(dateStr, t.startDate, t.endDate) &&
+            !traineesPlacedToday[profile.id] // Ensure max 1
+          );
+
+          if (activeTraineeForProfile) {
+            // Check if this trainee is absent today using standard activeAbsences
+            const isTraineeAbsent = activeAbsences.some(a => 
+              a.workerId === activeTraineeForProfile.workerId && 
+              isDateBetween(dateStr, a.dateStart, a.dateEnd)
+            );
+
+            if (!isTraineeAbsent) {
+              const traineeWorker = allWorkers.find(w => w.id === activeTraineeForProfile.workerId);
+              trainee = {
+                id: activeTraineeForProfile.id,
+                name: traineeWorker ? traineeWorker.name : 'Desconocido',
+                isInternal: traineeWorker ? traineeWorker.category !== 'ESTUDIANTE' : false
+              };
+              // Record placement
+              traineesPlacedToday[profile.id] = true;
+            }
+          }
+        }
         
         // Step A: Theoretical Assignee
         let theoreticalWorker = fixedWorkersMap[profile.id] || null;
         
-        // Check Absence
+        // Check Absence or if Worker is currently a Trainee elsewhere
         if (theoreticalWorker) {
           const hasAbsence = activeAbsences.some(abs => 
             abs.workerId === theoreticalWorker.id && 
             isDateBetween(dateStr, abs.dateStart, abs.dateEnd)
           );
-          if (hasAbsence) {
-            theoreticalWorker = null; // Theoretical is gone due to absence
+          
+          const isTrainingElsewhere = activeTrainees.some(t => 
+            t.workerId === theoreticalWorker.id &&
+            isDateBetween(dateStr, t.startDate, t.endDate)
+          );
+
+          if (hasAbsence || isTrainingElsewhere) {
+            theoreticalWorker = null; // Theoretical is gone due to absence or being extracted for training
           }
         }
         
@@ -124,6 +177,7 @@ router.get('/', async (req, res) => {
           status,
           isOverride,
           overrideId: override ? override.id : null, // ID from the Assignments table
+          trainee // Attached trainee object if present
         });
       }
 

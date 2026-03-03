@@ -57,3 +57,10 @@ export const AssignmentsAPI = {
   createOrUpdate: (data) => api.post('/assignments', data).then(res => res.data),
   delete: (id) => api.delete(`/assignments/${id}`).then(res => res.data)
 };
+
+export const TraineesAPI = {
+  getAll: () => api.get('/trainees').then(res => res.data),
+  create: (data) => api.post('/trainees', data).then(res => res.data),
+  update: (id, data) => api.put(`/trainees/${id}`, data).then(res => res.data),
+  delete: (id) => api.delete(`/trainees/${id}`).then(res => res.data)
+};

@@ -6,8 +6,10 @@ import { Route as indexRoute } from './routes/index'
 import { Route as configRoute } from './routes/configuration'
 import { Route as staffRoute } from './routes/staff'
 import { Route as staffDetailRoute } from './routes/staff.$workerId'
-import { Route as absencesRoute } from './routes/absences'
+import { Route as absRoute } from './routes/absences'
 import { Route as calendarRoute } from './routes/calendar'
+import { Route as traineesRoute } from './routes/trainees'
+import { Route as traineeDetailRoute } from './routes/trainees.$traineeId'
 
 import './index.css'
 import './i18n/config'
@@ -18,8 +20,10 @@ const routeTree = rootRoute.addChildren([
   configRoute,
   staffRoute,
   staffDetailRoute,
-  absencesRoute,
+  absRoute,
   calendarRoute,
+  traineesRoute,
+  traineeDetailRoute,
 ])
 
 // Create a new router instance
