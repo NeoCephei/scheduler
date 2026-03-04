@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import AreasProfilesTab from '../components/config/AreasProfilesTab';
 import ShiftsTab from '../components/config/ShiftsTab';
 import HolidaysTab from '../components/config/HolidaysTab';
+import GeneralSettingsTab from '../components/config/GeneralSettingsTab';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -33,6 +34,7 @@ function Configuration() {
     { id: 'areas-profiles', label: 'Áreas y Perfiles' },
     { id: 'shifts', label: 'Turnos (Plantillas Base)' },
     { id: 'holidays', label: 'Festivos' },
+    { id: 'general', label: 'Reglas de Ausencias' },
   ];
 
   return (
@@ -63,6 +65,7 @@ function Configuration() {
           {activeTab === 'areas-profiles' && <AreasProfilesTab />}
           {activeTab === 'shifts' && <ShiftsTab />}
           {activeTab === 'holidays' && <HolidaysTab />}
+          {activeTab === 'general' && <GeneralSettingsTab />}
         </CardContent>
       </Card>
     </div>

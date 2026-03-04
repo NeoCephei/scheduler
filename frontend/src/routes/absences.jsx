@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { createRoute, Link } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
 import { useStaffStore } from '../stores/staffStore';
+import { useConfigStore } from '../stores/configStore';
 import { AbsencesAPI } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { ABSENCE_TYPES, ABSENCE_TYPE_LABELS } from '../lib/constants';
-import { Calendar, User, Search, RefreshCw, Plus, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Calendar, User, Search, RefreshCw, Plus, AlertTriangle, ArrowRight, Trash2, Edit } from 'lucide-react';
 import { CalendarAPI } from '../lib/api';
 import { useNavigate } from '@tanstack/react-router';
 import AssignmentModal from '../components/calendar/AssignmentModal';
@@ -19,17 +20,20 @@ export const Route = createRoute({
 });
 
 function GlobalAbsencesPage() {
-  const { absences, workersMap, absencesLoading, fetchGlobalAbsences, refreshGlobalAbsences } = useStaffStore();
+  const { absences, workersMap, absencesLoading, fetchGlobalAbsences, refreshGlobalAbsences, updateAbsence, deleteAbsence } = useStaffStore();
+  const { settings, fetchData: fetchConfigData } = useConfigStore();
   
   useEffect(() => { 
     fetchGlobalAbsences();
-  }, [fetchGlobalAbsences]);
+    fetchConfigData();
+  }, [fetchGlobalAbsences, fetchConfigData]);
 
   const [search, setSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('ALL');
 
   // Absence Modal
   const [isAbsenceModalOpen, setAbsenceModalOpen] = useState(false);
+  const [editingAbsenceId, setEditingAbsenceId] = useState(null);
   const [absenceForm, setAbsenceForm] = useState({ workerId: '', type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
   const [absenceError, setAbsenceError] = useState('');
   const [impactData, setImpactData] = useState(null);
@@ -41,6 +45,75 @@ function GlobalAbsencesPage() {
   const [impactModalData, setImpactModalData] = useState(null);
   const [isImpactLoading, setIsImpactLoading] = useState(false);
   const [selectedCellForAssignment, setSelectedCellForAssignment] = useState(null);
+
+  // Coverage Calculation for active and future absences
+  const [coverageData, setCoverageData] = useState({});
+  const [isCoverageLoading, setIsCoverageLoading] = useState(false);
+
+  useEffect(() => {
+    const computeCoverage = async () => {
+      // 1. Identify valid absences that need coverage calculation
+      const nowStr = new Date().toISOString().split('T')[0];
+      const validAbsences = absences.filter(a => a.dateEnd >= nowStr);
+      if (validAbsences.length === 0 || workersMap.length === 0) {
+        setCoverageData({});
+        return;
+      }
+
+      // 2. Find min dateStart and max dateEnd to fetch a single matrix
+      let minDate = validAbsences[0].dateStart;
+      let maxDate = validAbsences[0].dateEnd;
+      validAbsences.forEach(a => {
+        if (a.dateStart < minDate) minDate = a.dateStart;
+        if (a.dateEnd > maxDate) maxDate = a.dateEnd;
+      });
+
+      // Avoid fetching the past before today for coverage purposes
+      if (minDate < nowStr) minDate = nowStr;
+
+      try {
+        setIsCoverageLoading(true);
+        const matrix = await CalendarAPI.getMatrix(minDate, maxDate);
+        
+        const newCoverageData = {};
+        
+        for (const abs of validAbsences) {
+          const worker = workersMap[abs.workerId];
+          if (!worker || worker.category !== 'FIJO' || !worker.fixedProfileId) {
+            // Not a fixed worker with a profile, so no strict "uncovered" shifts
+            newCoverageData[abs.id] = { required: false };
+            continue;
+          }
+
+          const checkStart = abs.dateStart < nowStr ? nowStr : abs.dateStart;
+          const checkEnd = abs.dateEnd;
+          
+          const relevantCells = matrix.filter(c => 
+            c.profileId === worker.fixedProfileId &&
+            c.date >= checkStart && c.date <= checkEnd
+          );
+          
+          const uncoveredCells = relevantCells.filter(c => c.status === 'UNCOVERED');
+          
+          newCoverageData[abs.id] = {
+            required: true,
+            isFullyCovered: uncoveredCells.length === 0,
+            uncoveredCount: uncoveredCells.length
+          };
+        }
+        
+        setCoverageData(newCoverageData);
+      } catch (err) {
+        console.error("Failed to fetch matrix for coverage", err);
+      } finally {
+        setIsCoverageLoading(false);
+      }
+    };
+
+    if (absences.length > 0 && Object.keys(workersMap).length > 0) {
+      computeCoverage();
+    }
+  }, [absences, workersMap]);
 
   const loadImpactData = async (absence) => {
     setIsImpactLoading(true);
@@ -87,11 +160,19 @@ function GlobalAbsencesPage() {
 
   const executeSave = async () => {
     try {
-      await AbsencesAPI.create({ 
+      const data = { 
         ...absenceForm, 
         workerId: Number(absenceForm.workerId)
-      });
+      };
+      
+      if (editingAbsenceId) {
+        await updateAbsence(editingAbsenceId, data);
+      } else {
+        await AbsencesAPI.create(data);
+      }
+      
       setAbsenceModalOpen(false);
+      setEditingAbsenceId(null);
       setAbsenceForm({ workerId: '', type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
       setImpactData(null);
       refreshGlobalAbsences();
@@ -100,9 +181,59 @@ function GlobalAbsencesPage() {
     }
   };
 
+  const openCreateModal = () => {
+    setEditingAbsenceId(null);
+    setAbsenceForm({ workerId: '', type: ABSENCE_TYPES[0], dateStart: '', dateEnd: '', note: '' });
+    setAbsenceModalOpen(true);
+  };
+  
+  const handleEdit = (absence) => {
+    setEditingAbsenceId(absence.id);
+    setAbsenceForm({
+      workerId: String(absence.workerId),
+      type: absence.type,
+      dateStart: absence.dateStart,
+      dateEnd: absence.dateEnd,
+      note: absence.note || ''
+    });
+    setAbsenceModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('¿Estás seguro de que quieres eliminar esta ausencia? Esto no se puede deshacer.')) {
+      try {
+        await deleteAbsence(id);
+        refreshGlobalAbsences();
+      } catch (err) {
+        alert(err.response?.data?.error || 'Error al eliminar la ausencia');
+      }
+    }
+  };
+
   // Get local 'YYYY-MM-DD' taking timezone into account
   const nowObj = new Date();
   const now = new Date(nowObj.getTime() - (nowObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+  // Notice period warning
+  let noticeWarningMsg = null;
+  if (absenceForm.dateStart && (absenceForm.type === 'VACACIONES' || absenceForm.type === 'ASUNTOS_PROPIOS')) {
+    const noticeDaysSetting = settings?.['absence_notice_days'];
+    const minNoticeDays = noticeDaysSetting ? parseInt(noticeDaysSetting, 10) : 0;
+    
+    if (minNoticeDays > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = new Date(absenceForm.dateStart);
+      start.setHours(0, 0, 0, 0);
+      
+      const diffTime = start - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays >= 0 && diffDays < minNoticeDays) {
+        noticeWarningMsg = `Aviso: Esta ausencia se está solicitando con ${diffDays} días de antelación. La normativa establece un mínimo de ${minNoticeDays} días.`;
+      }
+    }
+  }
 
   const filteredAbsences = absences
     .filter(a => {
@@ -189,7 +320,7 @@ function GlobalAbsencesPage() {
           <p className="text-sm text-muted-foreground mt-1">Supervisión centralizada de permisos y vacaciones de toda la plantilla.</p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2 shrink-0">
+          <Button onClick={openCreateModal} className="gap-2 shrink-0">
             <Plus size={16} /> Añadir Ausencia
           </Button>
         </div>
@@ -276,6 +407,8 @@ function GlobalAbsencesPage() {
                       <div className="flex-1 divide-y">
                         {wg.items.map(absence => {
                           const subLabel = getSubLabel(absence);
+                          const cov = coverageData[absence.id];
+                          
                           return (
                             <div key={absence.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                               <div className="flex-1">
@@ -285,6 +418,18 @@ function GlobalAbsencesPage() {
                                     <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${subLabel.color}`}>
                                       {subLabel.text}
                                     </span>
+                                  )}
+                                  
+                                  {cov && cov.required && groupKey !== 'PAST' && (
+                                    cov.isFullyCovered ? (
+                                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+                                        Totalmente Cubierta
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
+                                        Faltan {cov.uncoveredCount} turnos por cubrir
+                                      </span>
+                                    )
                                   )}
                                 </div>
                                 <div className="text-sm mt-1 text-muted-foreground">
@@ -296,12 +441,19 @@ function GlobalAbsencesPage() {
                                   </div>
                                 )}
                               </div>
-                              
-                              {wg.worker.category === 'FIJO' && groupKey !== 'PAST' && (
-                                <Button variant="secondary" size="sm" className="shrink-0" onClick={() => { setImpactModalAbsence(absence); loadImpactData(absence); }}>
-                                  Gestionar Suplencias
+                              <div className="flex items-center gap-2 mt-4 sm:mt-0 sm:ml-4 shrink-0">
+                                {wg.worker.category === 'FIJO' && groupKey !== 'PAST' && (
+                                  <Button variant="secondary" size="sm" onClick={() => { setImpactModalAbsence(absence); loadImpactData(absence); }}>
+                                    Gestionar Suplencias
+                                  </Button>
+                                )}
+                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(absence)} title="Editar ausencia">
+                                  <Edit size={14} />
                                 </Button>
-                              )}
+                                <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(absence.id)} title="Eliminar ausencia">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
@@ -315,7 +467,7 @@ function GlobalAbsencesPage() {
         )}
       </div>
 
-      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); setImpactData(null); }} title={impactData ? "Impacto en el Calendario" : "Registrar Ausencia Global"}>
+      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); setImpactData(null); }} title={impactData ? "Impacto en el Calendario" : (editingAbsenceId ? "Editar Ausencia" : "Registrar Ausencia Global")}>
         {!impactData ? (
         <form onSubmit={handleCheckImpact} className="space-y-4">
           <div className="space-y-2">
@@ -325,6 +477,7 @@ function GlobalAbsencesPage() {
               value={absenceForm.workerId} 
               onChange={e => setAbsenceForm({ ...absenceForm, workerId: e.target.value })}
               required
+              disabled={!!editingAbsenceId}
             >
               <option value="" disabled>Selecciona un trabajador...</option>
               {Object.values(workersMap)
@@ -362,6 +515,13 @@ function GlobalAbsencesPage() {
               value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="Ej: Certificado entregado al departamento de RRHH..." />
           </div>
           
+          {noticeWarningMsg && (
+            <div className="bg-amber-100/50 border-l-4 border-amber-500 text-amber-800 p-3 rounded text-sm mb-4 flex items-start">
+              <AlertTriangle className="h-4 w-4 mr-2 shrink-0" />
+              <span>{noticeWarningMsg}</span>
+            </div>
+          )}
+
           {absenceError && (
             <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm rounded-md border border-red-200 dark:border-red-800/50 flex items-start gap-2">
               <AlertTriangle size={16} className="shrink-0 mt-0.5" />

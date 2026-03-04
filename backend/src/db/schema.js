@@ -94,6 +94,11 @@ const traineeOperations = sqliteTable('trainee_operations', {
   isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false)
 });
 
+const settings = sqliteTable('settings', {
+  id: text('id').primaryKey(), // Using string ID directly e.g. 'absence_notice_days'
+  value: text('value').notNull()
+});
+
 module.exports = {
   areas,
   shifts,
@@ -105,5 +110,6 @@ module.exports = {
   absences,
   assignments,
   publishedMonths,
-  traineeOperations
+  traineeOperations,
+  settings
 };

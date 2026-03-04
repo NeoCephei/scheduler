@@ -64,3 +64,8 @@ export const TraineesAPI = {
   update: (id, data) => api.put(`/trainees/${id}`, data).then(res => res.data),
   delete: (id) => api.delete(`/trainees/${id}`).then(res => res.data)
 };
+
+export const SettingsAPI = {
+  getAll: () => api.get('/settings').then(res => res.data),
+  set: (id, value) => api.post('/settings', { id, value }).then(res => res.data)
+};

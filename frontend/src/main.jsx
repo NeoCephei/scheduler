@@ -17,11 +17,11 @@ import './i18n/config'
 // Build the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  calendarRoute,
   configRoute,
   staffRoute,
   staffDetailRoute,
   absRoute,
-  calendarRoute,
   traineesRoute,
   traineeDetailRoute,
 ])

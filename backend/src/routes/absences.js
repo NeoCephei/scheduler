@@ -70,6 +70,43 @@ router.post('/', (req, res) => {
   }
 });
 
+// UPDATE absence
+router.put('/:id', (req, res) => {
+  try {
+    const { type, dateStart, dateEnd, note } = req.body;
+    const id = Number(req.params.id);
+
+    // Fetch existing to get workerId
+    const existingAbsence = db.select().from(absences).where(eq(absences.id, id)).get();
+    if (!existingAbsence) {
+      return res.status(404).json({ error: 'Absence not found' });
+    }
+
+    if (!type || !dateStart || !dateEnd) {
+      return res.status(400).json({ error: 'type, dateStart and dateEnd are required' });
+    }
+    if (!ABSENCE_TYPES.includes(type)) {
+      return res.status(400).json({ error: `Invalid type. Must be one of: ${ABSENCE_TYPES.join(', ')}` });
+    }
+    if (dateStart > dateEnd) {
+      return res.status(400).json({ error: 'dateStart cannot be after dateEnd' });
+    }
+    if (hasOverlap(existingAbsence.workerId, dateStart, dateEnd, id)) {
+      return res.status(409).json({ error: 'This ausencia solapa con otra existente para este trabajador' });
+    }
+    
+    db.update(absences)
+      .set({ type, dateStart, dateEnd, note })
+      .where(eq(absences.id, id))
+      .run();
+      
+    const updated = db.select().from(absences).where(eq(absences.id, id)).get();
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE absence (hard delete — operational data)
 router.delete('/:id', (req, res) => {
   try {

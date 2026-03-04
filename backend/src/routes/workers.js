@@ -93,22 +93,32 @@ router.put('/:id', (req, res) => {
     const { name, category, fixedProfileId, substituteType, isActive, notes, capabilities, requiredHours, shiftId, trainingStartTime, trainingEndTime, tutorName, tutorContact, practicumStartDate, practicumEndDate } = req.body;
     
     const result = db.transaction((tx) => {
-      const updated = tx.update(workers).set({
-        name,
-        category,
-        fixedProfileId: category === 'FIJO' ? fixedProfileId : null,
-        substituteType: category === 'SUPLENTE' || category === 'ESTUDIANTE' ? substituteType : null,
-        requiredHours: category === 'ESTUDIANTE' ? Number(requiredHours || 0) : 0,
-        shiftId: category === 'ESTUDIANTE' && shiftId ? Number(shiftId) : null,
-        trainingStartTime: category === 'ESTUDIANTE' ? trainingStartTime : null,
-        trainingEndTime: category === 'ESTUDIANTE' ? trainingEndTime : null,
-        tutorName: category === 'ESTUDIANTE' ? tutorName : null,
-        tutorContact: category === 'ESTUDIANTE' ? tutorContact : null,
-        practicumStartDate: category === 'ESTUDIANTE' ? practicumStartDate : null,
-        practicumEndDate: category === 'ESTUDIANTE' ? practicumEndDate : null,
-        isActive,
-        notes
-      }).where(eq(workers.id, workerId)).returning().get();
+      // Build safe update object removing undefined and explicit null checks for missing fields
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (category !== undefined) {
+        updateData.category = category;
+        updateData.fixedProfileId = category === 'FIJO' ? fixedProfileId : null;
+        updateData.substituteType = category === 'SUPLENTE' || category === 'ESTUDIANTE' ? substituteType : null;
+        updateData.requiredHours = category === 'ESTUDIANTE' ? Number(requiredHours || 0) : 0;
+        updateData.shiftId = category === 'ESTUDIANTE' && shiftId ? Number(shiftId) : null;
+        updateData.trainingStartTime = category === 'ESTUDIANTE' ? trainingStartTime : null;
+        updateData.trainingEndTime = category === 'ESTUDIANTE' ? trainingEndTime : null;
+        updateData.tutorName = category === 'ESTUDIANTE' ? tutorName : null;
+        updateData.tutorContact = category === 'ESTUDIANTE' ? tutorContact : null;
+        updateData.practicumStartDate = category === 'ESTUDIANTE' ? practicumStartDate : null;
+        updateData.practicumEndDate = category === 'ESTUDIANTE' ? practicumEndDate : null;
+      }
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (notes !== undefined) updateData.notes = notes;
+
+      // Always execute update if there are fields, otherwise skip to capabilities
+      let updated;
+      if (Object.keys(updateData).length > 0) {
+        updated = tx.update(workers).set(updateData).where(eq(workers.id, workerId)).returning().get();
+      } else {
+        updated = tx.select().from(workers).where(eq(workers.id, workerId)).get();
+      }
       
       if (!updated) return null;
       

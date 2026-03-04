@@ -105,6 +105,10 @@ export const useStaffStore = create((set, get) => ({
     return await AbsencesAPI.create(data);
   },
 
+  updateAbsence: async (id, data) => {
+    return await AbsencesAPI.update(id, data);
+  },
+
   deleteAbsence: async (id) => {
     return await AbsencesAPI.delete(id);
   }

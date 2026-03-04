@@ -10,6 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { ABSENCE_TYPES, ABSENCE_TYPE_LABELS, SUBSTITUTE_TYPE_LABELS } from '../lib/constants';
 import { ArrowLeft, Plus, Trash2, AlertTriangle, Power, PowerOff, Calendar } from 'lucide-react';
+import WorkerAnalytics from '../components/staff/WorkerAnalytics';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -20,7 +21,7 @@ export const Route = createRoute({
 function WorkerDetailPage() {
   const { workerId } = Route.useParams();
   const { areas, profiles, fetchData } = useConfigStore();
-  const { toggleWorkerActive } = useStaffStore();
+  const { toggleWorkerActive, updateWorker } = useStaffStore();
   const { trainees, fetchTrainees, createTrainee, updateTrainee } = useTraineeStore();
 
   const [worker, setWorker] = useState(null);
@@ -37,6 +38,10 @@ function WorkerDetailPage() {
   // Trainee Modal
   const [isTraineeModalOpen, setTraineeModalOpen] = useState(false);
   const [traineeForm, setTraineeForm] = useState({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
+
+  // Capabilities Modal
+  const [isCapsModalOpen, setCapsModalOpen] = useState(false);
+  const [capsForm, setCapsForm] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -93,6 +98,32 @@ function WorkerDetailPage() {
   };
 
   const workerTrainees = trainees.filter(t => t.workerId === Number(workerId));
+
+  const handleOpenCapsModal = () => {
+    setCapsForm(worker?.capabilities || []);
+    setCapsModalOpen(true);
+  };
+
+  const toggleCapability = (profileId) => {
+    setCapsForm(prev => prev.includes(profileId) ? prev.filter(id => id !== profileId) : [...prev, profileId]);
+  };
+
+  const toggleArea = (areaId) => {
+    const areaProfileIds = profiles.filter(p => p.areaId === areaId).map(p => p.id);
+    const allSelected = areaProfileIds.every(id => capsForm.includes(id));
+    if (allSelected) {
+      setCapsForm(prev => prev.filter(id => !areaProfileIds.includes(id)));
+    } else {
+      setCapsForm(prev => [...new Set([...prev, ...areaProfileIds])]);
+    }
+  };
+
+  const handleSaveCaps = async (e) => {
+    e.preventDefault();
+    await updateWorker(worker.id, { ...worker, capabilities: capsForm });
+    setWorker({ ...worker, capabilities: capsForm });
+    setCapsModalOpen(false);
+  };
 
   const AbsenceCard = ({ absence }) => {
     const nowObj = new Date();
@@ -268,7 +299,12 @@ function WorkerDetailPage() {
           <div className="grid md:grid-cols-[1fr,300px] gap-8">
             {/* Capabilities */}
             <div>
-              <h3 className="text-lg font-semibold tracking-tight mb-4">Capacidades Extra</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold tracking-tight">Capacidades Extra</h3>
+                <Button size="sm" variant="outline" onClick={handleOpenCapsModal} className="h-8 gap-2">
+                  <Plus size={14} /> Editar
+                </Button>
+              </div>
               {worker.capabilities?.length > 0 ? (
                 <div className="space-y-3">
                   {areas.map(area => {
@@ -348,27 +384,7 @@ function WorkerDetailPage() {
 
       {/* Tab Content: Analytics */}
       {activeTab === 'analytics' && (
-        <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="border rounded-xl p-5 text-center bg-card shadow-sm">
-              <p className="text-4xl font-bold tracking-tighter">{totalAbsences}</p>
-              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Ausencias Registradas</p>
-            </div>
-            <div className="border rounded-xl p-5 text-center bg-card shadow-sm">
-              <p className="text-4xl font-bold tracking-tighter">{worker.capabilities?.length || 0}</p>
-              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Sillas extra capaces</p>
-            </div>
-            <div className="border rounded-xl p-5 text-center bg-muted/40 shadow-sm opacity-50">
-              <p className="text-4xl font-bold tracking-tighter">—</p>
-              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Turnos Asignados</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-xl bg-muted/10">
-            <AlertTriangle className="text-muted-foreground/50 mb-3" size={32} />
-            <h3 className="font-semibold text-lg">Analíticas Avanzadas</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">El conteo de cargas y heatmaps de turnos cubiertos estará disponible al completarse la Fase 5 (Dashboard & Reportes).</p>
-          </div>
-        </div>
+        <WorkerAnalytics worker={worker} absences={absenceGroups} />
       )}
 
       {/* Modals */}
@@ -460,6 +476,42 @@ function WorkerDetailPage() {
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
             <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>Cancelar</Button>
             <Button type="submit">Iniciar Formación</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isCapsModalOpen} onClose={() => setCapsModalOpen(false)} title="Editar Capacidades Manualmente" className="max-w-md">
+        <form onSubmit={handleSaveCaps} className="space-y-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Selecciona los perfiles que este trabajador domina y puede cubrir. No recibirá asignaciones automáticas para perfiles que no estén marcados.
+          </p>
+          <div className="border rounded-lg divide-y max-h-72 overflow-y-auto bg-muted/20">
+            {areas.map(area => {
+              const areaProfiles = profiles.filter(p => p.areaId === area.id && p.id !== worker.fixedProfileId);
+              if (areaProfiles.length === 0) return null;
+              const allSelected = areaProfiles.every(p => capsForm.includes(p.id));
+              const someSelected = areaProfiles.some(p => capsForm.includes(p.id));
+              return (
+                <div key={area.id}>
+                  <label className="flex items-center gap-3 px-3 py-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input type="checkbox" checked={allSelected} ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                      onChange={() => toggleArea(area.id)} className="w-4 h-4" />
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: area.color }} />
+                    <span className="font-semibold text-sm">{area.name}</span>
+                  </label>
+                  {areaProfiles.map(p => (
+                    <label key={p.id} className="flex items-center gap-3 px-3 py-2 pl-10 cursor-pointer hover:bg-muted/30 transition-colors">
+                      <input type="checkbox" checked={capsForm.includes(p.id)} onChange={() => toggleCapability(p.id)} className="w-4 h-4" />
+                      <span className="text-sm">{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <div className="pt-2 flex justify-end gap-2 border-t mt-6">
+            <Button type="button" variant="outline" onClick={() => setCapsModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Guardar Capacidades</Button>
           </div>
         </form>
       </Modal>
