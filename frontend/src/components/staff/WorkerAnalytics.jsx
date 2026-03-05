@@ -231,7 +231,7 @@ export default function WorkerAnalytics({ worker, absences }) {
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Perfiles Dominados</CardTitle></CardHeader>
-          <CardContent><p className="text-3xl font-bold text-blue-600">{(worker.capabilities?.length || 0) + (worker.fixedProfileId ? 1 : 0)}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-blue-600">{new Set([...(worker.capabilities || []), worker.fixedProfileId].filter(Boolean)).size}</p></CardContent>
         </Card>
       </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
-import { TraineesAPI, WorkersAPI, AbsencesAPI } from '../lib/api';
+import { TraineesAPI, WorkersAPI, AbsencesAPI, CalendarAPI } from '../lib/api';
 import { useConfigStore } from '../stores/configStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useTraineeStore } from '../stores/traineeStore';
@@ -42,6 +42,10 @@ function TraineeDetailPage() {
   const [isTraineeModalOpen, setTraineeModalOpen] = useState(false);
   const [traineeForm, setTraineeForm] = useState({ targetProfileId: '', startDate: '', endDate: '', notes: '' });
 
+  // Analytics & Hire Modal
+  const [isHireConfirmOpen, setHireConfirmOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState({ loaded: false, loading: false, shifts: [] });
+
   const loadData = async () => {
     setLoading(true);
     await fetchData();
@@ -56,6 +60,26 @@ function TraineeDetailPage() {
   };
 
   useEffect(() => { loadData(); }, [traineeId]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics' && !analyticsData.loaded && !analyticsData.loading && worker) {
+      const fetchAnalytics = async () => {
+        setAnalyticsData(prev => ({ ...prev, loading: true }));
+        try {
+          const start = worker.practicumStartDate || new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0];
+          const end = worker.practicumEndDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0];
+          const matrix = await CalendarAPI.getMatrix(start, end);
+          const shifts = matrix.filter(s => s.allocatedWorkerId === worker.id);
+          setAnalyticsData({ loaded: true, loading: false, shifts });
+        } catch (err) {
+          console.error("Failed to fetch analytics:", err);
+          setAnalyticsData({ loaded: true, loading: false, shifts: [] });
+        }
+      };
+      fetchAnalytics();
+    }
+  }, [activeTab, analyticsData.loaded, analyticsData.loading, worker]);
+
 
   const getProfile = (id) => profiles.find(p => p.id === id);
   const getArea = (areaId) => areas.find(a => a.id === areaId);
@@ -111,10 +135,8 @@ function TraineeDetailPage() {
   };
 
   const handleHire = async () => {
-    if (confirm(`¿Estás seguro de contratar a ${worker.name} como Suplente oficial? Pasará a formar parte de la plantilla oficial y saldrá de la lista de estudiantes.`)) {
-      await updateWorker(worker.id, { category: 'SUPLENTE' });
-      window.location.href = `/staff/${worker.id}`;
-    }
+    await updateWorker(worker.id, { category: 'SUPLENTE' });
+    window.location.href = `/staff/${worker.id}`;
   };
 
   const workerTrainees = trainees.filter(t => t.workerId === Number(traineeId));
@@ -280,7 +302,7 @@ function TraineeDetailPage() {
             <Trash2 size={14}/> Borrar Permanentemente
           </Button>
           {(generalStatus === 'COMPLETED' || (generalStatus === 'PENDING' && workerTrainees.length > 0)) && (
-            <Button size="sm" onClick={handleHire} className="gap-1.5 justify-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+            <Button size="sm" onClick={() => setHireConfirmOpen(true)} className="gap-1.5 justify-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
               <GraduationCap size={14} /> Fichar como Suplente
             </Button>
           )}
@@ -471,16 +493,34 @@ function TraineeDetailPage() {
       {/* Tab Content: Analytics */}
       {activeTab === 'analytics' && (
         <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="border rounded-xl p-5 text-center bg-card shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
               <p className="text-4xl font-bold tracking-tighter text-red-500">{totalAbsences}</p>
               <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Faltas Registradas</p>
             </div>
+            {analyticsData.loading ? (
+              <div className="border rounded-xl p-5 text-center bg-card shadow-sm col-span-2 flex flex-col items-center justify-center text-muted-foreground text-sm">Escaneando calendario para contar turnos...</div>
+            ) : (
+              <>
+                <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
+                  <p className="text-4xl font-bold tracking-tighter text-primary">
+                    {analyticsData.shifts.reduce((acc, shift) => acc + getShiftHours(shift.shiftId), 0).toFixed(1)}h
+                  </p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Horas Asignadas (Real)</p>
+                </div>
+                <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
+                  <p className="text-4xl font-bold tracking-tighter text-blue-600">
+                    {worker.requiredHours ? ((analyticsData.shifts.reduce((acc, shift) => acc + getShiftHours(shift.shiftId), 0) / worker.requiredHours) * 100).toFixed(1) : 0}%
+                  </p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Progreso del Objetivo</p>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-xl bg-muted/10">
-            <AlertTriangle className="text-muted-foreground/50 mb-3" size={32} />
-            <h3 className="font-semibold text-lg">Métricas Horarias de Prácticas</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">El conteo real de horas completadas según turnos diarios estará disponible al finalizar el módulo de Analíticas del Dashboard en la Fase 6.</p>
+            <Calendar className="text-muted-foreground/50 mb-3" size={32} />
+            <h3 className="font-semibold text-lg">Control de Prácticas Activo</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">El conteo de horas se actualiza automáticamente basándose en los turnos asignados a este estudiante en el calendario.</p>
           </div>
         </div>
       )}
@@ -600,6 +640,23 @@ function TraineeDetailPage() {
             <Button type="submit">Guardar Periodo</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={isHireConfirmOpen} onClose={() => setHireConfirmOpen(false)} title="Contratar como Suplente">
+        <div className="space-y-4">
+          <p className="text-sm text-foreground">
+            ¿Estás seguro de contratar a <strong>{worker.name}</strong> como Suplente oficial?
+          </p>
+          <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">
+            Pasará a formar parte de la plantilla oficial de trabajadores y dejará de aparecer en la lista de estudiantes. Sus registros de prácticas se conservarán.
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setHireConfirmOpen(false)}>Cancelar</Button>
+            <Button className="bg-indigo-600 text-white hover:bg-indigo-700 border-0 shadow-sm" onClick={handleHire}>
+              Sí, Contratar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

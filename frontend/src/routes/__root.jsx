@@ -43,16 +43,16 @@ function RootComponent() {
               {t('nav.dashboard')}
             </Link>
             <Link to="/calendar" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
-              Calendario
+              {t('nav.calendar')}
             </Link>
             <Link to="/staff" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
-              Plantilla
+              {t('nav.workers')}
             </Link>
             <Link to="/absences" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
-              Ausencias
+              {t('nav.absences')}
             </Link>
             <Link to="/trainees" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
-              Estudiantes
+              {t('nav.trainees')}
             </Link>
             <Link to="/configuration" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               {t('nav.configuration')}
@@ -67,15 +67,13 @@ function RootComponent() {
               {i18n.language}
             </button>
             
-            <a 
-              href="https://buymeacoffee.com" 
-              target="_blank" 
-              rel="noreferrer"
+            <Link 
+              to="/support"
               className="flex items-center space-x-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-              title={t('header.buy_coffee')}
+              title={t('header.buy_coffee') || "Apóyame (Buy Me a Coffee)"}
             >
               <Coffee size={20} />
-            </a>
+            </Link>
           </div>
         </div>
       </header>

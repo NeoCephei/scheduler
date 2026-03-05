@@ -1,6 +1,7 @@
 import { createRoute } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCalendarStore } from '../stores/calendarStore';
 import { useConfigStore } from '../stores/configStore';
 import { useStaffStore } from '../stores/staffStore';
@@ -17,6 +18,7 @@ export const Route = createRoute({
 });
 
 function CalendarPage() {
+  const { t } = useTranslation();
   const { 
     viewMode, groupMode, currentDate, 
     setViewMode, setGroupMode, goNext, goPrev, goToday, 
@@ -37,7 +39,7 @@ function CalendarPage() {
   const { startStr, endStr } = getStartEndDates();
 
   const handleExport = () => {
-    console.log("Exportando a Excel... (Placeholder Fase 4)");
+    window.print();
   };
 
   return (
@@ -47,7 +49,7 @@ function CalendarPage() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-primary" />
-            Calendario
+            {t('nav.calendar')}
           </h2>
           <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
             <span className="font-semibold text-foreground">
@@ -63,49 +65,49 @@ function CalendarPage() {
           {/* Navigation */}
           <div className="flex bg-muted rounded-md p-0.5">
             <Button variant="ghost" size="sm" onClick={goPrev}><ChevronLeft size={18} /></Button>
-            <Button variant="ghost" size="sm" onClick={goToday} className="font-medium">Hoy</Button>
+            <Button variant="ghost" size="sm" onClick={goToday} className="font-medium">{t('calendar.today', 'Hoy')}</Button>
             <Button variant="ghost" size="sm" onClick={goNext}><ChevronRight size={18} /></Button>
           </div>
 
           <div className="w-px h-8 bg-border mx-1"></div>
 
           {/* Filters */}
-          <div className="flex bg-muted rounded-md p-0.5" title="Agrupación">
+          <div className="flex bg-muted rounded-md p-0.5" title={t('calendar.grouping', 'Agrupación')}>
             <Button 
               variant={groupMode === 'shift' ? 'default' : 'ghost'} 
               size="sm" 
               onClick={() => setGroupMode('shift')}
             >
-              Por Turno
+              {t('calendar.by_shift', 'Por Turno')}
             </Button>
             <Button 
               variant={groupMode === 'area' ? 'default' : 'ghost'} 
               size="sm" 
               onClick={() => setGroupMode('area')}
             >
-              Por Área
+              {t('calendar.by_area', 'Por Área')}
             </Button>
           </div>
 
-          <div className="flex bg-muted rounded-md p-0.5" title="Vista">
+          <div className="flex bg-muted rounded-md p-0.5" title={t('calendar.view', 'Vista')}>
             <Button 
               variant={viewMode === 'week' ? 'default' : 'ghost'} 
               size="sm" 
               onClick={() => setViewMode('week')}
             >
-              Semana
+              {t('calendar.week', 'Semana')}
             </Button>
             <Button 
               variant={viewMode === 'month' ? 'default' : 'ghost'} 
               size="sm" 
               onClick={() => setViewMode('month')}
             >
-              Mes
+              {t('calendar.month', 'Mes')}
             </Button>
           </div>
 
           <Button variant="outline" size="sm" onClick={handleExport} className="ml-auto">
-            <Download size={16} className="mr-2" /> Exportar
+            <Download size={16} className="mr-2" /> {t('calendar.export', 'Exportar')}
           </Button>
         </div>
       </div>

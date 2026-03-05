@@ -10,6 +10,7 @@ import { Route as absRoute } from './routes/absences'
 import { Route as calendarRoute } from './routes/calendar'
 import { Route as traineesRoute } from './routes/trainees'
 import { Route as traineeDetailRoute } from './routes/trainees.$traineeId'
+import { Route as supportRoute } from './routes/support'
 
 import './index.css'
 import './i18n/config'
@@ -24,6 +25,7 @@ const routeTree = rootRoute.addChildren([
   absRoute,
   traineesRoute,
   traineeDetailRoute,
+  supportRoute,
 ])
 
 // Create a new router instance
