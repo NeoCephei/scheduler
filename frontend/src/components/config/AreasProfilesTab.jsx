@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../stores/configStore';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { Edit2, Trash2, Plus, ShieldAlert, ChevronDown, ChevronRight, Power, PowerOff } from 'lucide-react';
 
-const DAYS = [
-  { id: 1, name: 'Lunes', short: 'L' },
-  { id: 2, name: 'Martes', short: 'M' },
-  { id: 3, name: 'Miércoles', short: 'X' },
-  { id: 4, name: 'Jueves', short: 'J' },
-  { id: 5, name: 'Viernes', short: 'V' },
-  { id: 6, name: 'Sábado', short: 'S' },
-  { id: 7, name: 'Domingo', short: 'D' },
-  { id: 8, name: 'Festivo', short: 'F' }
+const getDays = (t) => [
+  { id: 1, name: t('days.monday'), short: t('days.monday_short') },
+  { id: 2, name: t('days.tuesday'), short: t('days.tuesday_short') },
+  { id: 3, name: t('days.wednesday'), short: t('days.wednesday_short') },
+  { id: 4, name: t('days.thursday'), short: t('days.thursday_short') },
+  { id: 5, name: t('days.friday'), short: t('days.friday_short') },
+  { id: 6, name: t('days.saturday'), short: t('days.saturday_short') },
+  { id: 7, name: t('days.sunday'), short: t('days.sunday_short') },
+  { id: 8, name: t('days.holiday'), short: t('days.holiday_short') }
 ];
 
 export default function AreasProfilesTab() {
+  const { t } = useTranslation();
+  const DAYS = getDays(t);
   const { areas, profiles, shifts, addArea, updateArea, deleteArea, addProfile, updateProfile, deleteProfile } = useConfigStore();
   
   // Accordion State
@@ -85,7 +88,7 @@ export default function AreasProfilesTab() {
   const submitProfile = async (e) => {
     e.preventDefault();
     if (!profileFormData.shiftId) {
-      alert("El Turno (Plantilla) es obligatorio para un Perfil.");
+      alert(t('config.alert_shift_required'));
       return;
     }
     const payload = {
@@ -129,15 +132,15 @@ export default function AreasProfilesTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Áreas y Perfiles</h2>
-          <p className="text-sm text-muted-foreground mt-1">Gestiona las zonas del hospital y sus respectivas "sillas".</p>
+          <h2 className="text-xl font-semibold">{t('config.areas_title')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('config.areas_subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-muted/50 p-1 rounded-lg">
-            <Button type="button" variant={!groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(false)} className="h-8 px-3 text-xs">Por Áreas</Button>
-            <Button type="button" variant={groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(true)} className="h-8 px-3 text-xs">Por Turnos</Button>
+            <Button type="button" variant={!groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(false)} className="h-8 px-3 text-xs">{t('config.areas_btn_area')}</Button>
+            <Button type="button" variant={groupByShift ? "secondary" : "ghost"} size="sm" onClick={() => setGroupByShift(true)} className="h-8 px-3 text-xs">{t('config.areas_btn_shift')}</Button>
           </div>
-          <Button onClick={openNewArea} className="gap-2 shrink-0 h-9"><Plus size={16}/> Nueva Área</Button>
+          <Button onClick={openNewArea} className="gap-2 shrink-0 h-9"><Plus size={16}/> {t('config.areas_new_area')}</Button>
         </div>
       </div>
 
@@ -146,7 +149,7 @@ export default function AreasProfilesTab() {
           // --- RENDER BY AREA (Default) ---
           areas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-              No hay áreas creadas. Empieza creando tu primera área (Ej. Urgencias).
+              {t('config.areas_empty')}
             </div>
           ) : areas.map(area => {
             const areaProfiles = profiles.filter(p => p.areaId === area.id);
@@ -160,13 +163,13 @@ export default function AreasProfilesTab() {
                     {isExpanded ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground"/>}
                     <div className="w-5 h-5 rounded" style={{ backgroundColor: area.color }} />
                     <span className="font-semibold text-lg">{area.name}</span>
-                    <span className="text-muted-foreground text-sm">({areaProfiles.length} perfil{areaProfiles.length === 1 ? '' : 'es'})</span>
+                    <span className="text-muted-foreground text-sm">{t('config.areas_profiles_count', { count: areaProfiles.length, plural: areaProfiles.length === 1 ? '' : 'es' })}</span>
                   </div>
                   
                   <div className="flex items-center gap-1 shrink-0 px-2">
-                    <Button variant="ghost" size="icon" title="Añadir Perfil" onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={16}/></Button>
-                    <Button variant="ghost" size="icon" title="Editar Área" onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={16}/></Button>
-                    <Button variant="ghost" size="icon" title="Eliminar Área" className="text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={16}/></Button>
+                    <Button variant="ghost" size="icon" title={t('config.areas_add_profile')} onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={16}/></Button>
+                    <Button variant="ghost" size="icon" title={t('config.areas_edit_area')} onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={16}/></Button>
+                    <Button variant="ghost" size="icon" title={t('config.areas_delete_area')} className="text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={16}/></Button>
                   </div>
                 </div>
 
@@ -174,9 +177,9 @@ export default function AreasProfilesTab() {
                 {isExpanded && (
                   <div className="p-4 bg-muted/10 border-t space-y-4">
                     {areaProfiles.length === 0 ? (
-                      <div className="text-sm text-muted-foreground px-4 py-2 italic font-light">Sin perfiles en esta área.</div>
+                      <div className="text-sm text-muted-foreground px-4 py-2 italic font-light">{t('config.areas_no_profiles')}</div>
                     ) : (
-                      [...shifts, { id: 'none', name: 'Sin Turno Asignado' }].map(shift => {
+                      [...shifts, { id: 'none', name: t('config.areas_no_shift') }].map(shift => {
                         const shiftProfiles = areaProfiles.filter(p => shift.id === 'none' ? !p.shiftId : p.shiftId === shift.id);
                         if (shiftProfiles.length === 0) return null;
 
@@ -191,7 +194,7 @@ export default function AreasProfilesTab() {
                                   <div className="flex-1 min-w-0 pl-2">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-medium text-sm leading-none truncate">{profile.name}</h4>
-                                      {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">Inactivo</span>}
+                                      {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">{t('config.areas_inactive')}</span>}
                                     </div>
                                     <div className="flex gap-1 flex-wrap mt-1.5">
                                       {DAYS.map(d => {
@@ -205,7 +208,7 @@ export default function AreasProfilesTab() {
                                       })}
                                       {profile.minBackupWorkers > 0 && (
                                         <div className="text-[9px] border border-orange-200/50 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-900/20 px-1 py-0.5 rounded flex items-center gap-1 font-medium text-orange-600 dark:text-orange-400">
-                                          <ShieldAlert size={10}/> {profile.minBackupWorkers} min
+                                          <ShieldAlert size={10}/> {t('config.areas_min_backup', { count: profile.minBackupWorkers })}
                                         </div>
                                       )}
                                     </div>
@@ -231,7 +234,7 @@ export default function AreasProfilesTab() {
           })
         ) : (
           // --- RENDER BY SHIFT ---
-          [...shifts, { id: 'none', name: 'Sin Turno Asignado' }].map(shift => {
+          [...shifts, { id: 'none', name: t('config.areas_no_shift') }].map(shift => {
             const shiftProfiles = profiles.filter(p => shift.id === 'none' ? !p.shiftId : p.shiftId === shift.id);
             if (shiftProfiles.length === 0) return null;
 
@@ -244,7 +247,7 @@ export default function AreasProfilesTab() {
                   <div className="flex items-center gap-3">
                     {isExpanded ? <ChevronDown size={18} className="text-primary"/> : <ChevronRight size={18} className="text-primary"/>}
                     <span className="font-semibold text-lg text-primary">{shift.name}</span>
-                    <span className="text-muted-foreground text-sm">({shiftProfiles.length} perfil{shiftProfiles.length === 1 ? '' : 'es'})</span>
+                    <span className="text-muted-foreground text-sm">{t('config.areas_profiles_count', { count: shiftProfiles.length, plural: shiftProfiles.length === 1 ? '' : 'es' })}</span>
                   </div>
                 </div>
 
@@ -262,9 +265,9 @@ export default function AreasProfilesTab() {
                               <span className="font-semibold text-sm">{area.name}</span>
                             </div>
                             <div className="flex items-center gap-1 shrink-0 px-1">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Añadir Perfil a esta Área" onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={14}/></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar Área" onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={14}/></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Eliminar Área" onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={14}/></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title={t('config.areas_add_profile')} onClick={(e) => { e.stopPropagation(); openNewProfile(area.id); }}><Plus size={14}/></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title={t('config.areas_edit_area')} onClick={(e) => { e.stopPropagation(); openEditArea(area); }}><Edit2 size={14}/></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" title={t('config.areas_delete_area')} onClick={(e) => { e.stopPropagation(); setAreaToDelete(area); }}><Trash2 size={14}/></Button>
                             </div>
                           </div>
                           <div className="p-2 space-y-2">
@@ -273,7 +276,7 @@ export default function AreasProfilesTab() {
                                 <div className="flex-1 min-w-0 pl-2">
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-medium text-sm leading-none truncate">{profile.name}</h4>
-                                    {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">Inactivo</span>}
+                                    {!profile.isActive && <span className="bg-muted text-foreground text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">{t('config.areas_inactive')}</span>}
                                   </div>
                                   <div className="flex gap-1 flex-wrap mt-1.5">
                                     {DAYS.map(d => {
@@ -309,35 +312,36 @@ export default function AreasProfilesTab() {
       </div>
 
       {/* --- AREA MODAL --- */}
-      <Modal isOpen={isAreaModalOpen} onClose={() => setAreaModalOpen(false)} title={editingAreaId ? 'Editar Área' : 'Nueva Área'}>
+      <Modal isOpen={isAreaModalOpen} onClose={() => setAreaModalOpen(false)} title={editingAreaId ? t('config.modal_area_edit') : t('config.modal_area_new')}>
         <form onSubmit={submitArea} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Nombre del Área</label>
-            <Input required value={areaFormData.name} onChange={e => setAreaFormData({...areaFormData, name: e.target.value})} placeholder="Ej. Urgencias" />
+            <label className="text-sm font-medium">{t('config.modal_area_name')}</label>
+            <Input required value={areaFormData.name} onChange={e => setAreaFormData({...areaFormData, name: e.target.value})} placeholder={t('config.modal_area_placeholder')} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Color Identificativo</label>
+            <label className="text-sm font-medium">{t('config.modal_area_color')}</label>
             <div className="flex gap-2 items-center">
               <Input type="color" className="w-16 p-1 h-10 cursor-pointer" value={areaFormData.color} onChange={e => setAreaFormData({...areaFormData, color: e.target.value})} />
             </div>
           </div>
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setAreaModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Guardar</Button>
+            <Button type="button" variant="outline" onClick={() => setAreaModalOpen(false)}>{t('config.cancel')}</Button>
+            <Button type="submit">{t('config.save')}</Button>
           </div>
         </form>
       </Modal>
 
+
       {/* --- PROFILE MODAL --- */}
-      <Modal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} title={editingProfileId ? 'Editar Perfil' : 'Nuevo Perfil'} className="max-w-2xl">
+      <Modal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} title={editingProfileId ? t('config.modal_profile_edit') : t('config.modal_profile_new')} className="max-w-2xl">
         <form onSubmit={submitProfile} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre de la Silla</label>
-              <Input required value={profileFormData.name} onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} placeholder="Ej. Urgencias Mañana 1" />
+              <label className="text-sm font-medium">{t('config.modal_profile_name')}</label>
+              <Input required value={profileFormData.name} onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} placeholder={t('config.modal_profile_placeholder')} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Área</label>
+              <label className="text-sm font-medium">{t('config.modal_profile_area')}</label>
               <select 
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required value={profileFormData.areaId} onChange={e => setProfileFormData({...profileFormData, areaId: e.target.value})}
@@ -349,24 +353,24 @@ export default function AreasProfilesTab() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Turno de Referencia</label>
+              <label className="text-sm font-medium">{t('config.modal_profile_shift')}</label>
               <select 
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required value={profileFormData.shiftId} onChange={e => setProfileFormData({...profileFormData, shiftId: e.target.value})}
               >
-                <option value="" disabled>Selecciona un turno base...</option>
+                <option value="" disabled>{t('config.modal_profile_shift_placeholder')}</option>
                 {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1"><ShieldAlert size={14} className="text-orange-500"/> Suplentes / Backups Mínimos</label>
+              <label className="text-sm font-medium flex items-center gap-1"><ShieldAlert size={14} className="text-orange-500"/> {t('config.modal_profile_min_backup')}</label>
               <Input type="number" min="0" value={profileFormData.minBackupWorkers} onChange={e => setProfileFormData({...profileFormData, minBackupWorkers: e.target.value})} />
             </div>
           </div>
 
           <div className="space-y-3 pt-2">
-            <label className="text-sm font-medium">Horarios de Trabajo (TimeSlots)</label>
-            <p className="text-xs text-muted-foreground -mt-2">Marca los días que trabaja este perfil. Modifica las horas si el horario varía un día del otro.</p>
+            <label className="text-sm font-medium">{t('config.modal_profile_timeslots')}</label>
+            <p className="text-xs text-muted-foreground -mt-2">{t('config.modal_profile_timeslots_hint')}</p>
             <div className="grid gap-2 border rounded-lg p-2 bg-muted/30">
               {DAYS.map(day => {
                 const slot = profileFormData.timeSlots.find(s => s.dayOfWeek === day.id);
@@ -408,36 +412,36 @@ export default function AreasProfilesTab() {
           </div>
 
           <div className="pt-4 flex justify-end gap-2 border-t">
-            <Button type="button" variant="outline" onClick={() => setProfileModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Guardar Perfil</Button>
+            <Button type="button" variant="outline" onClick={() => setProfileModalOpen(false)}>{t('config.cancel')}</Button>
+            <Button type="submit">{t('config.save')}</Button>
           </div>
         </form>
       </Modal>
 
       {/* Delete Area Modal */}
-      <Modal isOpen={!!areaToDelete} onClose={() => setAreaToDelete(null)} title="Eliminar Área">
+      <Modal isOpen={!!areaToDelete} onClose={() => setAreaToDelete(null)} title={t('config.modal_delete_area_title')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el área <strong>{areaToDelete?.name}</strong>? Todo el contenido será borrado irreversiblemente.</p>
+          <p className="text-sm" dangerouslySetInnerHTML={{ __html: t('config.modal_delete_area_body', { name: areaToDelete?.name }) }}></p>
           <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setAreaToDelete(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setAreaToDelete(null)}>{t('config.cancel')}</Button>
             <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
               await deleteArea(areaToDelete.id);
               setAreaToDelete(null);
-            }}>Eliminar</Button>
+            }}>{t('config.delete')}</Button>
           </div>
         </div>
       </Modal>
 
       {/* Delete Profile Modal */}
-      <Modal isOpen={!!profileToDelete} onClose={() => setProfileToDelete(null)} title="Eliminar Perfil">
+      <Modal isOpen={!!profileToDelete} onClose={() => setProfileToDelete(null)} title={t('config.modal_delete_profile_title')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el perfil <strong>{profileToDelete?.name}</strong>? Este borrado es definitivo y eliminará el perfil de los trabajadores vinculados.</p>
+          <p className="text-sm" dangerouslySetInnerHTML={{ __html: t('config.modal_delete_profile_body', { name: profileToDelete?.name }) }}></p>
           <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setProfileToDelete(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setProfileToDelete(null)}>{t('config.cancel')}</Button>
             <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
               await deleteProfile(profileToDelete.id);
               setProfileToDelete(null);
-            }}>Eliminar</Button>
+            }}>{t('config.delete')}</Button>
           </div>
         </div>
       </Modal>

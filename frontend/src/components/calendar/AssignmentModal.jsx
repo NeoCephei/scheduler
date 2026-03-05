@@ -4,11 +4,13 @@ import { Button } from '../ui/Button';
 import { useCalendarStore } from '../../stores/calendarStore';
 import { useStaffStore } from '../../stores/staffStore';
 import { useConfigStore } from '../../stores/configStore';
+import { useTranslation } from 'react-i18next';
 import { X, UserCheck, AlertTriangle, UserX, Loader2 } from 'lucide-react';
 import { AbsencesAPI } from '../../lib/api';
 import { useEffect } from 'react';
 
 export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
+  const { t, i18n } = useTranslation();
   const { updateCellOverride, deleteOverride, currentDate, matrixData } = useCalendarStore();
   const { workers } = useStaffStore();
   const { profiles } = useConfigStore();
@@ -120,9 +122,9 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
       const sameDayCells = matrixData.filter(c => c.date === targetDate);
       const workingCell = sameDayCells.find(c => c.allocatedWorkerId === worker.id && c.profileId !== cellProfileId);
       
-      let typeLabel = "Suplente Válido";
-      if (isFijoHere) typeLabel = "Fijo del Perfil";
-      else if (worker.category === 'FIJO') typeLabel = "Fijo de Otro Perfil";
+      let typeLabel = t('calendar.type_substitute');
+      if (isFijoHere) typeLabel = t('calendar.type_fixed_here');
+      else if (worker.category === 'FIJO') typeLabel = t('calendar.type_fixed_other');
 
       result.push({
         ...worker,
@@ -155,9 +157,9 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
           
           <div className="flex justify-between items-center p-4 border-b bg-muted/20">
             <div>
-              <Dialog.Title className="text-lg font-bold">Gestión de Turno</Dialog.Title>
+              <Dialog.Title className="text-lg font-bold">{t('calendar.modal_title')}</Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground mt-0.5 font-medium">
-                {new Date(targetDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long'})}
+                {new Date(targetDate).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long'})}
               </Dialog.Description>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}><X size={20}/></Button>
@@ -176,18 +178,18 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
 
             <div className="mt-4 p-3 rounded-lg bg-muted/40 border text-sm">
               <div className="flex justify-between items-center">
-                <span>Estado Actual:</span>
+                <span>{t('calendar.current_status')}</span>
                 {cellData?.status === 'UNCOVERED' ? (
-                  <span className="text-red-500 font-bold tracking-wide uppercase">Descubierto</span>
+                  <span className="text-red-500 font-bold tracking-wide uppercase">{t('calendar.uncovered')}</span>
                 ) : (
                   <span className="font-semibold">{cellData?.allocatedWorkerName}</span>
                 )}
               </div>
               {cellData?.isOverride && (
                 <div className="mt-2 text-blue-600 dark:text-blue-400 font-medium text-xs flex justify-between items-center border-t pt-2">
-                  Asignado manualmente (Override)
+                  {t('calendar.assigned_manually')}
                   <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleRevert} disabled={loading}>
-                    <UserX size={12} className="mr-1"/> Revertir a base
+                    <UserX size={12} className="mr-1"/> {t('calendar.revert')}
                   </Button>
                 </div>
               )}
@@ -195,11 +197,11 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            <h5 className="font-semibold text-sm text-muted-foreground px-1 uppercase tracking-wider">Candidatos Disponibles</h5>
+            <h5 className="font-semibold text-sm text-muted-foreground px-1 uppercase tracking-wider">{t('calendar.candidates')}</h5>
             
             {candidates.length === 0 ? (
               <div className="text-center p-6 bg-muted/20 rounded-lg border border-dashed text-muted-foreground text-sm">
-                No hay trabajadores disponibles con capacidad para este puesto hoy.
+                {t('calendar.no_candidates')}
               </div>
             ) : (
               candidates.map(candidate => (
@@ -211,7 +213,7 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
                     </p>
                     <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
                       {candidate.typeLabel}
-                      {candidate.assignedElsewhere && <span className="text-amber-600 dark:text-amber-400 font-bold ml-1"> (Ocupado)</span>}
+                      {candidate.assignedElsewhere && <span className="text-amber-600 dark:text-amber-400 font-bold ml-1"> ({t('calendar.busy_label')})</span>}
                     </p>
                   </div>
                   <Button 
@@ -220,7 +222,7 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
                     variant={candidate.id === cellData?.allocatedWorkerId ? "secondary" : candidate.assignedElsewhere ? "outline" : "default"}
                     onClick={() => handleOverride(candidate)}
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : candidate.id === cellData?.allocatedWorkerId ? 'Asignado' : 'Asignar'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : candidate.id === cellData?.allocatedWorkerId ? t('calendar.assigned_label') : t('calendar.assign_label')}
                   </Button>
                 </div>
               ))
@@ -229,7 +231,7 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
             {cellData?.status !== 'UNCOVERED' && !cellData?.isOverride && (
               <div className="mt-auto pt-6">
                 <Button variant="destructive" className="w-full" onClick={() => handleOverride(null)} disabled={loading}>
-                  <AlertTriangle size={16} className="mr-2"/> Forzar Descubierto (Vaciar Silla)
+                  <AlertTriangle size={16} className="mr-2"/> {t('calendar.force_uncovered')}
                 </Button>
               </div>
             )}
@@ -244,27 +246,27 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
           <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background p-6 rounded-lg shadow-xl w-full max-w-sm z-[60] border border-amber-500/50">
             <div className="flex items-center gap-3 mb-4 text-amber-500">
               <AlertTriangle className="w-6 h-6" />
-              <Dialog.Title className="text-lg font-semibold text-foreground">Conflicto de Asignación</Dialog.Title>
+              <Dialog.Title className="text-lg font-semibold text-foreground">{t('calendar.conflict_title')}</Dialog.Title>
             </div>
             
             <div className="space-y-3 mb-6">
               <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">{conflictCandidate?.name}</strong> ya está asignado hoy en el perfil:
+                <strong className="text-foreground">{conflictCandidate?.name}</strong> {t('calendar.conflict_body', { name: '' })}
               </p>
               <div className="p-3 bg-muted/40 rounded border font-medium text-sm">
                 "{conflictCandidate?.assignedElsewhere}"
               </div>
               <p className="text-sm text-muted-foreground">
                 {conflictCandidate?.isRevertScenario 
-                  ? "Al revertir, este trabajador volverá a su puesto base, dejándolo descubierto del perfil actual donde está cubriendo."
-                  : "Si lo mueves a este nuevo turno, se eliminará de su puesto actual dejándolo al descubierto."
+                  ? t('calendar.conflict_revert_msg')
+                  : t('calendar.conflict_move_msg')
                 }
               </p>
             </div>
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setConflictCandidate(null)} disabled={loading}>
-                Cancelar
+                {t('calendar.conflict_cancel')}
               </Button>
               <Button 
                 onClick={async () => {
@@ -281,7 +283,7 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
                 disabled={loading}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                {loading ? 'Procesando...' : conflictCandidate?.isRevertScenario ? 'Continuar y Vaciar el Otro Perfil' : 'Sí, Mover Trabajador'}
+                {loading ? t('calendar.processing') : conflictCandidate?.isRevertScenario ? t('calendar.conflict_revert_confirm') : t('calendar.conflict_move_confirm')}
               </Button>
             </div>
           </Dialog.Content>

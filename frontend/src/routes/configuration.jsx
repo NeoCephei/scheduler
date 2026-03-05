@@ -27,21 +27,21 @@ function Configuration() {
     fetchData();
   }, [fetchData]);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading configuration...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('config.loading')}</div>;
   if (error) return <div className="p-8 text-destructive">Error: {error}</div>;
 
   const tabs = [
-    { id: 'areas-profiles', label: 'Áreas y Perfiles' },
-    { id: 'shifts', label: 'Turnos (Plantillas Base)' },
-    { id: 'holidays', label: 'Festivos' },
-    { id: 'general', label: 'Reglas de Ausencias' },
+    { id: 'areas-profiles', label: t('config.tab_areas') },
+    { id: 'shifts', label: t('config.tab_shifts') },
+    { id: 'holidays', label: t('config.tab_holidays') },
+    { id: 'general', label: t('config.tab_rules') },
   ];
 
   return (
     <div className="p-8 w-full max-w-7xl mx-auto flex flex-col gap-6">
       <div>
         <h3 className="text-3xl font-bold tracking-tight">{t('nav.configuration')}</h3>
-        <p className="text-muted-foreground mt-2">Gestiona la estructura base de la plantilla y horarios.</p>
+        <p className="text-muted-foreground mt-2">{t('config.description')}</p>
       </div>
 
       <div className="flex space-x-1 bg-muted p-1 rounded-lg w-max">

@@ -5,6 +5,7 @@ import { WorkersAPI, AbsencesAPI } from '../lib/api';
 import { useConfigStore } from '../stores/configStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useTraineeStore } from '../stores/traineeStore';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -19,6 +20,7 @@ export const Route = createRoute({
 });
 
 function WorkerDetailPage() {
+  const { t } = useTranslation();
   const { workerId } = Route.useParams();
   const { areas, profiles, fetchData } = useConfigStore();
   const { toggleWorkerActive, updateWorker } = useStaffStore();
@@ -71,7 +73,7 @@ function WorkerDetailPage() {
       const abs = await AbsencesAPI.getByWorker(Number(workerId));
       setAbsenceGroups(abs);
     } catch (err) {
-      setAbsenceError(err.response?.data?.error || 'Error al guardar la ausencia.');
+      setAbsenceError(err.response?.data?.error || t('workers.error_save_absence'));
     }
   };
 
@@ -137,7 +139,7 @@ function WorkerDetailPage() {
       target.setHours(0, 0, 0, 0);
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      daysLeftStr = diffDays === 1 ? 'Mañana' : `En ${diffDays} días`;
+      daysLeftStr = diffDays === 1 ? t('workers.absence_tomorrow') : t('workers.absence_in_days', { count: diffDays });
     } else if (absence.dateEnd >= now) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -146,9 +148,9 @@ function WorkerDetailPage() {
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       daysLeftColor = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
-      if (diffDays === 0) daysLeftStr = "Termina hoy";
-      else if (diffDays === 1) daysLeftStr = "Termina mañana";
-      else daysLeftStr = `Quedan ${diffDays} días`;
+      if (diffDays === 0) daysLeftStr = t('workers.absence_ends_today');
+      else if (diffDays === 1) daysLeftStr = t('workers.absence_ends_tomorrow');
+      else daysLeftStr = t('workers.absence_days_left', { count: diffDays });
     }
 
     return (
@@ -158,7 +160,7 @@ function WorkerDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">
-                {ABSENCE_TYPE_LABELS[absence.type] || absence.type}
+                {t(`absence_type.${absence.type}`)}
               </span>
               {daysLeftStr && (
                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${daysLeftColor}`}>
@@ -166,7 +168,7 @@ function WorkerDetailPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm font-medium mt-1">{absence.dateStart} al {absence.dateEnd}</p>
+            <p className="text-sm font-medium mt-1">{absence.dateStart} {t('workers.absence_to')} {absence.dateEnd}</p>
             {absence.note && <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-1.5 rounded-sm italic">{absence.note}</p>}
           </div>
         </div>
@@ -178,8 +180,8 @@ function WorkerDetailPage() {
 
   const selectClassName = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-  if (loading) return <div className="p-8 text-muted-foreground">Cargando ficha...</div>;
-  if (!worker) return <div className="p-8 text-destructive">Trabajador no encontrado.</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('workers.detail_loading')}</div>;
+  if (!worker) return <div className="p-8 text-destructive">{t('workers.detail_not_found')}</div>;
 
   const fixedProfile = worker.fixedProfileId ? getProfile(worker.fixedProfileId) : null;
   const fixedArea = fixedProfile ? getArea(fixedProfile?.areaId) : null;
@@ -187,9 +189,9 @@ function WorkerDetailPage() {
   const totalAbsences = absenceGroups.active.length + absenceGroups.future.length + absenceGroups.past.length;
 
   const tabs = [
-    { id: 'info', label: 'Información y Capacidades' },
-    { id: 'absences', label: `Ausencias (${totalAbsences})` },
-    { id: 'analytics', label: 'Analíticas' }
+    { id: 'info', label: t('workers.tab_info') },
+    { id: 'absences', label: t('workers.tab_absences', { count: totalAbsences }) },
+    { id: 'analytics', label: t('workers.tab_analytics') }
   ];
 
   return (
@@ -209,9 +211,9 @@ function WorkerDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold tracking-tight">{worker.name}</h1>
             <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-full ${worker.category === 'FIJO' ? 'bg-primary/10 text-primary' : 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'}`}>
-              {worker.category}
+              {t(`workers.cat_${worker.category.toLowerCase()}`)}
             </span>
-            {!worker.isActive && <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-red-500">Desactivado</span>}
+            {!worker.isActive && <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-red-500">{t('workers.badge_deactivated')}</span>}
           </div>
           {fixedProfile && (
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
@@ -222,11 +224,11 @@ function WorkerDetailPage() {
             </p>
           )}
           {worker.category === 'SUPLENTE' && (
-            <p className="text-sm text-muted-foreground mt-1.5 font-medium">{SUBSTITUTE_TYPE_LABELS[worker.substituteType] || worker.substituteType}</p>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">{t(`substitute_type.${worker.substituteType}`)}</p>
           )}
         </div>
         <Button variant="outline" size="sm" onClick={() => toggleWorkerActive(worker.id).then(() => loadData())} className="gap-1.5 shrink-0">
-          {worker.isActive ? <><PowerOff size={14} className="text-destructive"/> Desactivar</> : <><Power size={14} className="text-primary"/> Activar</>}
+          {worker.isActive ? <><PowerOff size={14} className="text-destructive"/> {t('workers.btn_deactivate')}</> : <><Power size={14} className="text-primary"/> {t('workers.btn_activate')}</>}
         </Button>
       </div>
 
@@ -246,30 +248,30 @@ function WorkerDetailPage() {
           {hasNoCaps && (
             <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 text-sm">
               <AlertTriangle size={18} className="shrink-0 mt-0.5" /> 
-              <p>Este trabajador de tipo Suplente no tiene capacidades definidas. <strong>No recibirá sugerencias</strong> del motor de auto-asignación hasta que se le asigne al menos un perfil.</p>
+              <p>{t('workers.no_caps_warning')}</p>
             </div>
           )}
 
           {/* TRAINEE BLOCK */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold tracking-tight">Periodos de Formación (Trainee)</h3>
+              <h3 className="text-lg font-semibold tracking-tight">{t('workers.training_section')}</h3>
               <Button size="sm" variant="outline" onClick={() => setTraineeModalOpen(true)} className="gap-2">
-                <Plus size={16} /> Añadir Formación
+                <Plus size={16} /> {t('workers.add_training')}
               </Button>
             </div>
             
             {workerTrainees.length > 0 ? (
               <div className="grid gap-3">
-                {workerTrainees.map(t => {
-                  const targetProfile = getProfile(t.targetProfileId);
+                {workerTrainees.map(tr => {
+                  const targetProfile = getProfile(tr.targetProfileId);
                   const targetArea = targetProfile ? getArea(targetProfile.areaId) : null;
                   return (
-                    <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
+                    <div key={tr.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${t.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : t.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {t.status === 'ACTIVE' ? 'Encurso' : t.status === 'COMPLETED' ? 'Completado' : 'Pausado'}
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${tr.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : tr.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {tr.status === 'ACTIVE' ? t('workers.status_active') : tr.status === 'COMPLETED' ? t('workers.status_completed') : t('workers.status_paused')}
                           </span>
                           <span className="text-sm font-semibold flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: targetArea?.color }} />
@@ -277,13 +279,13 @@ function WorkerDetailPage() {
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Del {new Date(t.startDate).toLocaleDateString()} al {new Date(t.endDate).toLocaleDateString()}
+                          {t('workers.from_to', { start: new Date(tr.startDate).toLocaleDateString(), end: new Date(tr.endDate).toLocaleDateString() })}
                         </p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">Pausar</Button>}
-                        {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">Reanudar</Button>}
-                        {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">Superado</Button>}
+                        {tr.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(tr.id, 'PAUSED')} className="h-7 text-xs">{t('workers.btn_pause')}</Button>}
+                        {tr.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(tr.id, 'ACTIVE')} className="h-7 text-xs">{t('workers.btn_resume')}</Button>}
+                        {tr.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(tr.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">{t('workers.btn_complete')}</Button>}
                       </div>
                     </div>
                   )
@@ -291,7 +293,7 @@ function WorkerDetailPage() {
               </div>
             ) : (
               <div className="h-24 flex items-center justify-center border border-dashed rounded-lg text-sm text-muted-foreground bg-muted/10">
-                El trabajador no ha estado asignado a formaciones internas.
+                {t('workers.no_training')}
               </div>
             )}
           </div>
@@ -300,9 +302,9 @@ function WorkerDetailPage() {
             {/* Capabilities */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold tracking-tight">Capacidades Extra</h3>
+                <h3 className="text-lg font-semibold tracking-tight">{t('workers.caps_section')}</h3>
                 <Button size="sm" variant="outline" onClick={handleOpenCapsModal} className="h-8 gap-2">
-                  <Plus size={14} /> Editar
+                  <Plus size={14} /> {t('workers.modal_save_caps').replace('Guardar', t('config.edit')).replace('Save', t('config.edit'))}
                 </Button>
               </div>
               {worker.capabilities?.length > 0 ? (
@@ -327,7 +329,7 @@ function WorkerDetailPage() {
                 </div>
               ) : (
                 <div className="h-24 flex items-center justify-center border border-dashed rounded-lg text-sm text-muted-foreground">
-                  El trabajador no tiene capacidades extra.
+                  {t('workers.no_caps')}
                 </div>
               )}
             </div>
@@ -335,11 +337,11 @@ function WorkerDetailPage() {
             {/* General Info Sidebar */}
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Anotaciones</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('workers.notes_section')}</h3>
                 {worker.notes ? (
                   <p className="text-sm bg-muted/30 border rounded-lg p-3 whitespace-pre-wrap leading-relaxed">{worker.notes}</p>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic">Sin anotaciones.</span>
+                  <span className="text-sm text-muted-foreground italic">{t('workers.no_notes')}</span>
                 )}
               </div>
             </div>
@@ -351,13 +353,13 @@ function WorkerDetailPage() {
       {activeTab === 'absences' && (
         <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex justify-between items-end">
-            <h3 className="text-lg font-semibold tracking-tight">Registro de Ausencias</h3>
-            <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2"><Plus size={16} /> Añadir Ausencia</Button>
+            <h3 className="text-lg font-semibold tracking-tight">{t('workers.absences_section')}</h3>
+            <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2"><Plus size={16} /> {t('workers.add_absence')}</Button>
           </div>
 
           <div className="grid gap-6">
             {['active', 'future', 'past'].map(group => {
-              const labelMap = { active: 'En curso (Activas)', future: 'Próximas (Futuras)', past: 'Historial (Pasadas)' };
+              const labelMap = { active: t('workers.absence_active'), future: t('workers.absence_future'), past: t('workers.absence_past') };
               const colorMap = { active: 'text-red-600 dark:text-red-400', future: 'text-blue-600 dark:text-blue-400', past: 'text-muted-foreground' };
               const items = absenceGroups[group] || [];
               
@@ -368,7 +370,7 @@ function WorkerDetailPage() {
                   <h4 className={`text-sm font-semibold mb-3 ${colorMap[group]}`}>{labelMap[group]}</h4>
                   {items.length === 0 ? (
                     <div className="p-4 text-center border border-dashed rounded-lg text-sm text-muted-foreground">
-                      No hay ausencias en este bloque.
+                      {t('workers.absence_empty')}
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-3">
@@ -388,31 +390,31 @@ function WorkerDetailPage() {
       )}
 
       {/* Modals */}
-      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); }} title="Registrar Ausencia" className="max-w-md">
+      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); }} title={t('workers.modal_add_absence')} className="max-w-md">
         <form onSubmit={handleAddAbsence} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Motivo</label>
+            <label className="text-sm font-medium">{t('workers.modal_reason')}</label>
             <select className={selectClassName} value={absenceForm.type} onChange={e => setAbsenceForm({ ...absenceForm, type: e.target.value })}>
-              {ABSENCE_TYPES.map(t => <option key={t} value={t}>{ABSENCE_TYPE_LABELS[t]}</option>)}
+              {ABSENCE_TYPES.map(st => <option key={st} value={st}>{t(`absence_type.${st}`)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desde</label>
+              <label className="text-sm font-medium">{t('workers.modal_from')}</label>
               <Input required type="date" value={absenceForm.dateStart} onChange={e => setAbsenceForm({ ...absenceForm, dateStart: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hasta (Incluido)</label>
+              <label className="text-sm font-medium">{t('workers.modal_until')}</label>
               <Input required type="date" min={absenceForm.dateStart} value={absenceForm.dateEnd} onChange={e => setAbsenceForm({ ...absenceForm, dateEnd: e.target.value })} />
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium flex justify-between">
-              Notas adicionales
-              <span className="text-xs text-muted-foreground font-normal">Opcional</span>
+              {t('workers.modal_notes')}
+              <span className="text-xs text-muted-foreground font-normal">{t('workers.modal_optional')}</span>
             </label>
             <textarea className="flex w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-              value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="Ej: Certificado entregado al departamento de RRHH..." />
+              value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder={t('workers.modal_notes_placeholder')} />
           </div>
           
           {absenceError && (
@@ -423,33 +425,33 @@ function WorkerDetailPage() {
           )}
           
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>Cancelar</Button>
-            <Button type="submit">Guardar Ausencia</Button>
+            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>{t('workers.cancel')}</Button>
+            <Button type="submit">{t('workers.modal_save_absence')}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!absenceToDelete} onClose={() => setAbsenceToDelete(null)} title="Eliminar Ausencia">
+      <Modal isOpen={!!absenceToDelete} onClose={() => setAbsenceToDelete(null)} title={t('workers.modal_delete_absence')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Deseas eliminar del registro esta ausencia (<strong>{absenceToDelete?.type && ABSENCE_TYPE_LABELS[absenceToDelete.type]}</strong>) que abarca del <strong>{absenceToDelete?.dateStart}</strong> al <strong>{absenceToDelete?.dateEnd}</strong>?</p>
+          <p className="text-sm">{t('workers.modal_delete_absence_body', { type: absenceToDelete?.type && t(`absence_type.${absenceToDelete.type}`), start: absenceToDelete?.dateStart, end: absenceToDelete?.dateEnd })}</p>
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setAbsenceToDelete(null)}>Conservar</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>Eliminar permanentemente</Button>
+            <Button variant="outline" onClick={() => setAbsenceToDelete(null)}>{t('workers.modal_keep')}</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>{t('workers.modal_delete_permanently')}</Button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title="Registrar Periodo de Formación" className="max-w-md">
+      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title={t('workers.modal_training_title')} className="max-w-md">
         <form onSubmit={handleAddTraineeRecord} className="space-y-4">
           {worker.category !== 'ESTUDIANTE' && (
             <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-primary/20">
-              Durante las fechas seleccionadas, el trabajador será extraído de su puesto fijo y pasará a ser "Trainee" en el perfil seleccionado. Su puesto fijo quedará descubierto.
+              {t('workers.modal_training_info')}
             </p>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Perfil a aprender</label>
+            <label className="text-sm font-medium">{t('workers.modal_profile_to_learn')}</label>
             <select className={selectClassName} required value={traineeForm.targetProfileId} onChange={e => setTraineeForm({...traineeForm, targetProfileId: e.target.value})}>
-              <option value="" disabled>Seleccionar perfil...</option>
+              <option value="" disabled>{t('workers.modal_select_profile')}</option>
               {profiles.filter(p => {
                 if (!p.isActive) return false;
                 if (worker.category === 'ESTUDIANTE') return worker.capabilities?.includes(p.id);
@@ -461,29 +463,29 @@ function WorkerDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desde</label>
+              <label className="text-sm font-medium">{t('workers.modal_from')}</label>
               <Input required type="date" value={traineeForm.startDate} onChange={e => setTraineeForm({...traineeForm, startDate: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hasta</label>
+              <label className="text-sm font-medium">{t('workers.modal_until_short')}</label>
               <Input required type="date" min={traineeForm.startDate} value={traineeForm.endDate} onChange={e => setTraineeForm({...traineeForm, endDate: e.target.value})} />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Notas / Tutor</label>
-            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder="Ej. Tutor asignado..." />
+            <label className="text-sm font-medium">{t('workers.modal_notes_label')}</label>
+            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder={t('workers.field_tutor_placeholder')} />
           </div>
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Iniciar Formación</Button>
+            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>{t('workers.cancel')}</Button>
+            <Button type="submit">{t('workers.modal_start_training')}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={isCapsModalOpen} onClose={() => setCapsModalOpen(false)} title="Editar Capacidades Manualmente" className="max-w-md">
+      <Modal isOpen={isCapsModalOpen} onClose={() => setCapsModalOpen(false)} title={t('workers.modal_caps_title')} className="max-w-md">
         <form onSubmit={handleSaveCaps} className="space-y-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Selecciona los perfiles que este trabajador domina y puede cubrir. No recibirá asignaciones automáticas para perfiles que no estén marcados.
+            {t('workers.modal_caps_info')}
           </p>
           <div className="border rounded-lg divide-y max-h-72 overflow-y-auto bg-muted/20">
             {areas.map(area => {
@@ -510,8 +512,8 @@ function WorkerDetailPage() {
             })}
           </div>
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => setCapsModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Guardar Capacidades</Button>
+            <Button type="button" variant="outline" onClick={() => setCapsModalOpen(false)}>{t('workers.cancel')}</Button>
+            <Button type="submit">{t('workers.modal_save_caps')}</Button>
           </div>
         </form>
       </Modal>

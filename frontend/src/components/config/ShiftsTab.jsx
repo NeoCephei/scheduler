@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../stores/configStore';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -6,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Edit2, Trash2, Plus, Clock } from 'lucide-react';
 
 export default function ShiftsTab() {
+  const { t } = useTranslation();
   const { shifts, addShift, updateShift, deleteShift } = useConfigStore();
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -39,16 +41,17 @@ export default function ShiftsTab() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Turnos (Atajos)</h2>
-          <p className="text-sm text-muted-foreground">Define plantillas de horarios para rellenar perfiles rápido.</p>
+          <h2 className="text-xl font-semibold">{t('config.shifts_title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('config.shifts_subtitle')}</p>
         </div>
-        <Button onClick={handleOpenNew} className="gap-2"><Plus size={16}/> Nuevo Turno</Button>
+        <Button onClick={handleOpenNew} className="gap-2"><Plus size={16}/> {t('config.shifts_new')}</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {shifts.length === 0 ? (
           <div className="col-span-full p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-            No hay turnos configurados. Crea "Mañana" o "Tarde" como plantillas.
+            {t('config.shifts_empty')} <br/>
+            {t('config.shifts_empty_hint')}
           </div>
         ) : shifts.map(shift => (
           <div key={shift.id} className="border rounded-lg p-5 bg-card hover:border-primary/50 transition-colors flex flex-col justify-between group">
@@ -72,21 +75,21 @@ export default function ShiftsTab() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setModalOpen(false)} 
-        title={editingId ? 'Editar Turno' : 'Nuevo Turno'}
+        title={editingId ? t('config.modal_shift_edit') : t('config.modal_shift_new')}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Nombre (Atajo)</label>
+            <label className="text-sm font-medium">{t('config.modal_shift_name')}</label>
             <Input 
               required 
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
-              placeholder="Ej. Mañana"
+              placeholder={t('config.modal_shift_placeholder')}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hora Inicio</label>
+              <label className="text-sm font-medium">{t('config.modal_shift_start')}</label>
               <Input 
                 required 
                 type="time" 
@@ -95,7 +98,7 @@ export default function ShiftsTab() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hora Fin</label>
+              <label className="text-sm font-medium">{t('config.modal_shift_end')}</label>
               <Input 
                 required 
                 type="time" 
@@ -105,25 +108,25 @@ export default function ShiftsTab() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground pt-2">
-            Los turnos solo sirven como atajos visuales o plantillas predeterminadas al crear perfiles.
+            {t('config.modal_shift_hint')}
           </p>
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Guardar</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{t('config.cancel')}</Button>
+            <Button type="submit">{t('config.save')}</Button>
           </div>
         </form>
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={!!shiftToDelete} onClose={() => setShiftToDelete(null)} title="Eliminar Turno">
+      <Modal isOpen={!!shiftToDelete} onClose={() => setShiftToDelete(null)} title={t('config.modal_delete_shift_title')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Estás seguro de que deseas eliminar permanentemente el turno <strong>{shiftToDelete?.name}</strong>?</p>
+          <p className="text-sm" dangerouslySetInnerHTML={{ __html: t('config.modal_delete_shift_body', { name: shiftToDelete?.name }) }}></p>
           <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setShiftToDelete(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShiftToDelete(null)}>{t('config.cancel')}</Button>
             <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
               await deleteShift(shiftToDelete.id);
               setShiftToDelete(null);
-            }}>Eliminar</Button>
+            }}>{t('config.delete')}</Button>
           </div>
         </div>
       </Modal>

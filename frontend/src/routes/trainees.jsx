@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTraineeStore } from '../stores/traineeStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useConfigStore } from '../stores/configStore';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
@@ -17,8 +18,9 @@ export const Route = createRoute({
 });
 
 function TraineesPage() {
+  const { t } = useTranslation();
   const { workers, fetchWorkers, addWorker } = useStaffStore();
-  const { trainees, fetchTrainees } = useTraineeStore(); // Trainees are operations here
+  const { trainees, fetchTrainees } = useTraineeStore();
   const { areas, profiles, shifts, fetchData } = useConfigStore();
   
   const [search, setSearch] = useState('');
@@ -54,14 +56,12 @@ function TraineesPage() {
     <div className="flex-1 space-y-4 p-8 pt-6 w-full">
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Estudiantes</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Gestión de practicantes. Registra los perfiles a autorizar y planifica sus periodos.
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight">{t('students.title')}</h2>
+          <p className="text-muted-foreground mt-1 text-sm">{t('students.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus size={16} /> Añadir Estudiante
+            <Plus size={16} /> {t('students.add')}
           </Button>
         </div>
       </div>
@@ -70,22 +70,22 @@ function TraineesPage() {
         <div className="flex items-center gap-2 max-w-sm w-full relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar estudiantes..."
+            placeholder={t('students.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
           />
         </div>
         <div className="flex gap-2">
-          <Button variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('ACTIVE')}>Activos / Pendientes</Button>
-          <Button variant={statusFilter === 'COMPLETED' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('COMPLETED')}>Finalizados</Button>
-          <Button variant={statusFilter === 'ALL' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('ALL')}>Todos</Button>
+          <Button variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('ACTIVE')}>{t('students.filter_active')}</Button>
+          <Button variant={statusFilter === 'COMPLETED' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('COMPLETED')}>{t('students.filter_completed')}</Button>
+          <Button variant={statusFilter === 'ALL' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('ALL')}>{t('students.filter_all')}</Button>
         </div>
       </div>
 
       {filteredStudents.length === 0 ? (
         <div className="py-20 text-center border rounded-lg bg-muted/20">
-          <p className="text-muted-foreground">No se encontraron estudiantes externos.</p>
+          <p className="text-muted-foreground">{t('students.empty')}</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -106,19 +106,19 @@ function TraineesPage() {
                     </div>
                   </div>
                   {status === 'ACTIVE' ? (
-                    <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10 hover:bg-green-500/20">En curso</Badge>
+                    <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10 hover:bg-green-500/20">{t('students.status_active')}</Badge>
                   ) : status === 'COMPLETED' ? (
-                    <Badge variant="outline" className="text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border-blue-200">Completado</Badge>
+                    <Badge variant="outline" className="text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border-blue-200">{t('students.status_completed')}</Badge>
                   ) : status === 'PAUSED' ? (
-                    <Badge variant="outline" className="text-orange-600 bg-orange-500/10 border-orange-200">Pausado</Badge>
+                    <Badge variant="outline" className="text-orange-600 bg-orange-500/10 border-orange-200">{t('students.status_paused')}</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-muted-foreground bg-muted/30">Pendiente de iniciar</Badge>
+                    <Badge variant="outline" className="text-muted-foreground bg-muted/30">{t('students.status_pending')}</Badge>
                   )}
                 </div>
 
                 <div className="space-y-3 mt-2 text-sm flex-1">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Perfiles a Aprender</span>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{t('students.profiles_label')}</span>
                     {capProfiles.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {capProfiles.map(p => (
@@ -126,19 +126,19 @@ function TraineesPage() {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">Ningún perfil asignado</span>
+                      <span className="text-xs text-muted-foreground italic">{t('students.no_profiles')}</span>
                     )}
                   </div>
                   
                   <div className="flex flex-col gap-1.5 mt-2">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Restricciones</span>
-                    <span className="text-xs font-medium text-foreground">{student.requiredHours}h mínimo global</span>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{t('students.restrictions')}</span>
+                    <span className="text-xs font-medium text-foreground">{t('students.min_hours', { hours: student.requiredHours })}</span>
                   </div>
                 </div>
 
                 <div className="flex justify-end items-end mt-4 pt-4 border-t">
                   <Link to={`/trainees/${student.id}`} className="inline-flex items-center justify-center gap-1.5 w-full bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 rounded-lg py-2 text-sm font-semibold transition-colors">
-                    Ficha y Actividad <ChevronRight size={16} />
+                    {t('students.view_profile')} <ChevronRight size={16} />
                   </Link>
                 </div>
               </div>
@@ -166,6 +166,7 @@ function TraineesPage() {
 }
 
 function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, holidays = [] }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
@@ -268,7 +269,7 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Dar de Alta Estudiante" className="max-w-[550px]">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('students.modal_title')} className="max-w-[550px]">
       
       {/* Step Progress Indicator */}
       <div className="flex items-center justify-between mb-6 relative">
@@ -279,7 +280,7 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
               {s}
             </div>
             <span className="text-[10px] uppercase font-bold tracking-wider">
-              {s === 1 ? 'Datos' : s === 2 ? 'Horarios' : 'Perfiles'}
+              {s === 1 ? t('students.step_data') : s === 2 ? t('students.step_schedule') : t('students.step_profiles')}
             </span>
           </div>
         ))}
@@ -289,46 +290,46 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
         {step === 1 && (
           <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre Completo <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium">{t('students.field_name')} <span className="text-red-500">*</span></label>
               <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej. Ana García" />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Grado / Escuela</label>
+                <label className="text-sm font-medium">{t('students.field_grade')}</label>
                 <Input value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} placeholder="Ej. Grado Auxiliar" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Turno Asignado <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">{t('students.field_shift')} <span className="text-red-500">*</span></label>
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-[!optional]:text-muted-foreground outline-none"
                   required
                   value={formData.shiftId}
                   onChange={e => setFormData({...formData, shiftId: e.target.value})}
                 >
-                  <option value="" disabled>Seleccionar Turno...</option>
+                  <option value="" disabled>{t('students.field_select_shift')}</option>
                   {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
-                <p className="text-[10px] text-muted-foreground mt-1">El turno que tendrá en el calendario.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{t('students.field_shift_hint')}</p>
               </div>
             </div>
 
             <div className="bg-muted/10 p-4 rounded-lg border space-y-4">
-              <h4 className="text-sm font-semibold border-b pb-2">Contacto Responsable (Tutor)</h4>
+              <h4 className="text-sm font-semibold border-b pb-2">{t('students.tutor_section')}</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nombre del Tutor</label>
+                  <label className="text-sm font-medium">{t('students.field_tutor_name')}</label>
                   <Input value={formData.tutorName} onChange={e => setFormData({...formData, tutorName: e.target.value})} placeholder="Ej. Dr. Martínez" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Contacto (Email / Tlf)</label>
+                  <label className="text-sm font-medium">{t('students.field_tutor_contact')}</label>
                   <Input value={formData.tutorContact} onChange={e => setFormData({...formData, tutorContact: e.target.value})} placeholder="Ej. tutor@hospital.com" />
                 </div>
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium flex justify-between">Anotaciones Adicionales</label>
+              <label className="text-sm font-medium flex justify-between">{t('students.field_notes')}</label>
               <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-[!optional]:text-muted-foreground outline-none resize-none"
                 value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="..." />
             </div>
@@ -338,42 +339,42 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
         {step === 2 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 space-y-5">
-              <h4 className="text-sm font-semibold text-primary mb-2">Planificación Global de Horas</h4>
+              <h4 className="text-sm font-semibold text-primary mb-2">{t('students.schedule_section')}</h4>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Horas Objetivos Global <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{t('students.field_required_hours')} <span className="text-red-500">*</span></label>
                   <Input required type="number" min="1" value={formData.requiredHours} onChange={e => setFormData({...formData, requiredHours: e.target.value})} placeholder="Ej. 350" />
                 </div>
                 <div className="space-y-2 flex flex-col justify-end">
                   <div className="text-sm font-medium bg-background w-full h-10 px-3 flex items-center justify-center rounded-md border border-dashed text-muted-foreground whitespace-nowrap">
-                    Hace <strong>{getDailyHours().toFixed(2)}h</strong> / día
+                    {t('students.daily_hours', { hours: getDailyHours().toFixed(2) })}
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Hora Inicio (Prácticas) <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{t('students.field_start_time')} <span className="text-red-500">*</span></label>
                   <Input required type="time" value={formData.trainingStartTime} onChange={e => setFormData({...formData, trainingStartTime: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Hora Fin (Prácticas) <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{t('students.field_end_time')} <span className="text-red-500">*</span></label>
                   <Input required type="time" value={formData.trainingEndTime} onChange={e => setFormData({...formData, trainingEndTime: e.target.value})} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary/10">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Fecha de Inicio <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{t('students.field_start_date')} <span className="text-red-500">*</span></label>
                   <Input required type="date" value={formData.practicumStartDate} onChange={e => setFormData({...formData, practicumStartDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex justify-between items-center">
-                    <span>Fecha Fin <span className="text-red-500">*</span></span>
+                    <span>{t('students.field_end_date')} <span className="text-red-500">*</span></span>
                     {formData.practicumStartDate && formData.requiredHours && getDailyHours() > 0 && (
                       <button type="button" onClick={handleAutoCalcEndDate} className="text-xs font-bold text-primary hover:underline bg-background px-2 py-0.5 rounded shadow-sm border border-primary/20" tabIndex="-1">
-                        + Calcular Auto
+                        {t('students.auto_calc')}
                       </button>
                     )}
                   </label>
@@ -387,7 +388,7 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
         {step === 3 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider block">Perfiles que deberá aprender</label>
+              <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider block">{t('students.profiles_section')}</label>
               <div className="border rounded-lg divide-y max-h-[300px] overflow-y-auto bg-muted/10 custom-scrollbar shadow-inner">
                 {areas.map(area => {
                   const areaProfiles = profiles.filter(p => p.areaId === area.id);
@@ -420,18 +421,18 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
                 })}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Selecciona las áreas y perfiles en los que el estudiante de prácticas tiene autorización legal / seguro médico para estar durante este ciclo formativo.
+                {t('students.profiles_hint')}
               </p>
-              {formData.selectedProfiles.length === 0 && <span className="text-xs text-destructive font-semibold">Debes seleccionar al menos un perfil.</span>}
+              {formData.selectedProfiles.length === 0 && <span className="text-xs text-destructive font-semibold">{t('students.profiles_required')}</span>}
             </div>
           </div>
         )}
 
         <div className="pt-6 mt-6 flex justify-between gap-3 border-t">
           {step > 1 ? (
-            <Button type="button" variant="outline" onClick={prevStep} className="w-24">Atrás</Button>
+            <Button type="button" variant="outline" onClick={prevStep} className="w-24">{t('students.btn_back')}</Button>
           ) : (
-            <Button type="button" variant="ghost" onClick={onClose} className="w-24 text-muted-foreground">Cancelar</Button>
+            <Button type="button" variant="ghost" onClick={onClose} className="w-24 text-muted-foreground">{t('students.btn_cancel')}</Button>
           )}
           
           {step < 3 ? (
@@ -439,9 +440,9 @@ function NewStudentModal({ isOpen, onClose, onCreate, profiles, areas, shifts, h
               if (step === 1 && (!formData.name || !formData.shiftId)) return;
               if (step === 2 && (!formData.requiredHours || !formData.trainingStartTime || !formData.trainingEndTime || !formData.practicumStartDate || !formData.practicumEndDate)) return;
               nextStep();
-            }} className="w-32">Siguiente</Button>
+            }} className="w-32">{t('students.btn_next')}</Button>
           ) : (
-            <Button type="submit" disabled={formData.selectedProfiles.length === 0} className="w-32">Dar de Alta</Button>
+            <Button type="submit" disabled={formData.selectedProfiles.length === 0} className="w-32">{t('students.btn_register')}</Button>
           )}
         </div>
       </form>

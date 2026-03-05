@@ -5,6 +5,7 @@ import { TraineesAPI, WorkersAPI, AbsencesAPI, CalendarAPI } from '../lib/api';
 import { useConfigStore } from '../stores/configStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useTraineeStore } from '../stores/traineeStore';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -18,6 +19,7 @@ export const Route = createRoute({
 });
 
 function TraineeDetailPage() {
+  const { t } = useTranslation();
   const { traineeId } = Route.useParams();
   const { areas, profiles, holidays, shifts, fetchData } = useConfigStore();
   const { toggleWorkerActive, updateWorker } = useStaffStore();
@@ -94,7 +96,7 @@ function TraineeDetailPage() {
       const abs = await AbsencesAPI.getByWorker(Number(traineeId));
       setAbsenceGroups(abs);
     } catch (err) {
-      setAbsenceError(err.response?.data?.error || 'Error al guardar la ausencia.');
+      setAbsenceError(err.response?.data?.error || t('absence.error_save') || 'Error al guardar la ausencia.');
     }
   };
 
@@ -144,20 +146,20 @@ function TraineeDetailPage() {
   // Calculate trainee general status based on periods
   let generalStatus = 'PENDING';
   let badgeColor = 'bg-gray-100 text-gray-600';
-  let badgeLabel = 'Pendiente Inicialización';
+  let badgeLabel = t('students.badge_pending');
   
   if (workerTrainees.some(t => t.status === 'ACTIVE')) {
     generalStatus = 'ACTIVE';
     badgeColor = 'bg-green-100 text-green-700 border-green-200';
-    badgeLabel = 'En curso (Activo)';
+    badgeLabel = t('students.badge_active');
   } else if (workerTrainees.some(t => t.status === 'PAUSED')) {
     generalStatus = 'PAUSED';
     badgeColor = 'bg-orange-100 text-orange-700 border-orange-200';
-    badgeLabel = 'Pausado / Detenido';
+    badgeLabel = t('students.badge_paused');
   } else if (workerTrainees.length > 0 && workerTrainees.every(t => t.status === 'COMPLETED')) {
     generalStatus = 'COMPLETED';
     badgeColor = 'bg-blue-100 text-blue-700 border-blue-200';
-    badgeLabel = 'Prácticas Completadas';
+    badgeLabel = t('students.badge_completed');
   }
 
   const AbsenceCard = ({ absence }) => {
@@ -172,7 +174,7 @@ function TraineeDetailPage() {
       target.setHours(0, 0, 0, 0);
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      daysLeftStr = diffDays === 1 ? 'Mañana' : `En ${diffDays} días`;
+      daysLeftStr = diffDays === 1 ? t('absences.tomorrow') : t('absences.in_days', { count: diffDays });
     } else if (absence.dateEnd >= now) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -181,9 +183,9 @@ function TraineeDetailPage() {
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       daysLeftColor = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
-      if (diffDays === 0) daysLeftStr = "Termina hoy";
-      else if (diffDays === 1) daysLeftStr = "Termina mañana";
-      else daysLeftStr = `Quedan ${diffDays} días`;
+      if (diffDays === 0) daysLeftStr = t('absences.ends_today');
+      else if (diffDays === 1) daysLeftStr = t('absences.ends_tomorrow');
+      else daysLeftStr = t('absences.days_left', { count: diffDays });
     }
 
     return (
@@ -193,7 +195,7 @@ function TraineeDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">
-                {ABSENCE_TYPE_LABELS[absence.type] || absence.type}
+                {t('absence_type.' + absence.type)}
               </span>
               {daysLeftStr && (
                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${daysLeftColor}`}>
@@ -201,7 +203,7 @@ function TraineeDetailPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm font-medium mt-1">{absence.dateStart} al {absence.dateEnd}</p>
+            <p className="text-sm font-medium mt-1">{absence.dateStart} {t('students.absence_to')} {absence.dateEnd}</p>
             {absence.note && <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-1.5 rounded-sm italic">{absence.note}</p>}
           </div>
         </div>
@@ -250,15 +252,15 @@ function TraineeDetailPage() {
 
   const selectClassName = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-[!optional]:text-muted-foreground outline-none";
 
-  if (loading) return <div className="p-8 text-muted-foreground">Cargando ficha de estudiante...</div>;
-  if (!worker) return <div className="p-8 text-destructive">Estudiante no encontrado.</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('students.detail_loading')}</div>;
+  if (!worker) return <div className="p-8 text-destructive">{t('students.detail_not_found')}</div>;
 
   const totalAbsences = absenceGroups.active.length + absenceGroups.future.length + absenceGroups.past.length;
 
   const tabs = [
-    { id: 'info', label: 'Información Prácticas' },
-    { id: 'absences', label: `Ausencias (${totalAbsences})` },
-    { id: 'analytics', label: 'Analíticas' }
+    { id: 'info', label: t('students.tab_info') },
+    { id: 'absences', label: t('students.tab_absences', { count: totalAbsences }) },
+    { id: 'analytics', label: t('students.tab_analytics') }
   ];
 
   return (
@@ -280,30 +282,30 @@ function TraineeDetailPage() {
             <span className={`text-[11px] font-bold uppercase px-2.5 py-1 border rounded-md ${badgeColor}`}>
               {badgeLabel}
             </span>
-            {!worker.isActive && <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-red-500">Desactivado</span>}
+            {!worker.isActive && <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-red-500">{t('students.badge_deactivated')}</span>}
           </div>
           <p className="text-sm text-muted-foreground mt-1.5 font-medium flex gap-4">
-            <span className="flex items-center gap-1"><GraduationCap size={14}/> {SUBSTITUTE_TYPE_LABELS[worker.substituteType] || worker.substituteType}</span>
+            <span className="flex items-center gap-1"><GraduationCap size={14}/> {t('substitute_type.' + worker.substituteType)}</span>
             {worker.shiftId && (
               <span className="flex items-center gap-1">
                 <Clock size={14}/> 
-                Turno Asignado: {shifts.find(s => s.id === worker.shiftId)?.name || 'Desconocido'} 
+                {t('students.assigned_shift', { name: shifts.find(s => s.id === worker.shiftId)?.name || t('students.shift_unknown') })} 
               </span>
             )}
-            {worker.trainingStartTime && worker.trainingEndTime && <span className="flex items-center gap-1"><Calendar size={14}/> {worker.trainingStartTime} - {worker.trainingEndTime} ({getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h/día)</span>}
-            {worker.requiredHours && <span className="flex items-center gap-1"><ClipboardCheck size={14}/> {worker.requiredHours}h Globales ({worker.practicumStartDate} al {worker.practicumEndDate})</span>}
+            {worker.trainingStartTime && worker.trainingEndTime && <span className="flex items-center gap-1"><Calendar size={14}/> {worker.trainingStartTime} - {worker.trainingEndTime} ({t('students.daily_h', { hours: getDailyHours(worker.trainingStartTime, worker.trainingEndTime) })})</span>}
+            {worker.requiredHours && <span className="flex items-center gap-1"><ClipboardCheck size={14}/> {t('students.global_hours', { hours: worker.requiredHours, start: worker.practicumStartDate, end: worker.practicumEndDate })}</span>}
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => toggleWorkerActive(worker.id).then(() => loadData())} className="gap-1.5 justify-start">
-            {worker.isActive ? <><PowerOff size={14} className="text-destructive"/> Desactivar</> : <><Power size={14} className="text-primary"/> Activar</>}
+            {worker.isActive ? <><PowerOff size={14} className="text-destructive"/> {t('students.btn_deactivate')}</> : <><Power size={14} className="text-primary"/> {t('students.btn_activate')}</>}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(true)} className="gap-1.5 justify-start text-destructive hover:bg-destructive hover:text-white shadow-sm border-destructive/20">
-            <Trash2 size={14}/> Borrar Permanentemente
+            <Trash2 size={14}/> {t('students.btn_delete_perm')}
           </Button>
           {(generalStatus === 'COMPLETED' || (generalStatus === 'PENDING' && workerTrainees.length > 0)) && (
             <Button size="sm" onClick={() => setHireConfirmOpen(true)} className="gap-1.5 justify-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
-              <GraduationCap size={14} /> Fichar como Suplente
+              <GraduationCap size={14} /> {t('students.btn_hire')}
             </Button>
           )}
         </div>
@@ -328,10 +330,10 @@ function TraineeDetailPage() {
               {/* TRAINEE BLOCK */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold tracking-tight">Periodos de Formación</h3>
+                  <h3 className="text-lg font-semibold tracking-tight">{t('students.training_section')}</h3>
                   {worker.isActive && (
                     <Button size="sm" variant="outline" onClick={() => setTraineeModalOpen(true)} className="gap-2">
-                      <Plus size={16} /> Iniciar Periodo
+                      <Plus size={16} /> {t('students.start_period')}
                     </Button>
                   )}
                 </div>
@@ -346,7 +348,7 @@ function TraineeDetailPage() {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${t.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : t.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                                {t.status === 'ACTIVE' ? 'En curso' : t.status === 'COMPLETED' ? 'Completado' : 'Pausado'}
+                                {t.status === 'ACTIVE' ? t('students.btn_resume') : t.status === 'COMPLETED' ? t('students.btn_complete') : t('students.btn_pause')}
                               </span>
                               <span className="text-sm font-semibold flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: targetArea?.color }} />
@@ -354,14 +356,14 @@ function TraineeDetailPage() {
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Del {new Date(t.startDate).toLocaleDateString()} al {new Date(t.endDate).toLocaleDateString()}
+                              {t('students.period_from_to', { start: new Date(t.startDate).toLocaleDateString(), end: new Date(t.endDate).toLocaleDateString() })}
                             </p>
                             {t.notes && <p className="text-xs bg-muted/40 p-2 mt-2 rounded border">{t.notes}</p>}
                           </div>
                           <div className="flex flex-col gap-2">
-                            {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">Pausar</Button>}
-                            {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">Reanudar</Button>}
-                            {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">Superado</Button>}
+                            {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">{t('students.btn_pause')}</Button>}
+                            {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">{t('students.btn_resume')}</Button>}
+                            {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">{t('students.btn_complete')}</Button>}
                           </div>
                         </div>
                       )
@@ -369,7 +371,7 @@ function TraineeDetailPage() {
                   </div>
                 ) : (
                   <div className="h-24 flex flex-col items-center justify-center border border-dashed rounded-lg text-sm text-muted-foreground bg-muted/10">
-                    <p>El estudiante no tiene periodos de formación asignados.</p>
+                    <p>{t('students.no_periods')}</p>
                   </div>
                 )}
               </div>
@@ -379,7 +381,7 @@ function TraineeDetailPage() {
             <div className="space-y-6">
               {(worker.tutorName || worker.tutorContact) && (
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Responsable / Tutor</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('students.tutor_sidebar')}</h3>
                   <div className="bg-muted/10 border rounded-lg p-3 text-sm flex flex-col gap-1">
                     {worker.tutorName && <div className="font-semibold">{worker.tutorName}</div>}
                     {worker.tutorContact && <div className="text-muted-foreground">{worker.tutorContact}</div>}
@@ -388,38 +390,38 @@ function TraineeDetailPage() {
               )}
 
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Anotaciones</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('students.notes_sidebar')}</h3>
                 {worker.notes ? (
                   <p className="text-sm bg-muted/30 border rounded-lg p-3 whitespace-pre-wrap leading-relaxed">{worker.notes}</p>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic">Sin anotaciones.</span>
+                  <span className="text-sm text-muted-foreground italic">{t('students.no_notes')}</span>
                 )}
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Perfiles a aprender</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('students.profiles_sidebar')}</h3>
                 </div>
                 {worker.practicumStartDate && worker.practicumEndDate && worker.capabilities?.length > 0 && (
                   <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm text-foreground">
-                    <p className="font-semibold text-primary mb-2 flex items-center gap-2"><Calendar size={16}/> Calendario de Rotaciones Sugerido</p>
+                    <p className="font-semibold text-primary mb-2 flex items-center gap-2"><Calendar size={16}/> {t('students.rotation_suggested')}</p>
                     <div className="space-y-2 text-sm">
                       <p className="text-muted-foreground mb-3">
-                        Total a cubrir: <strong>{worker.requiredHours}h</strong> a {getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h/día.<br/>
-                        Días hábiles estimados: <strong>{calculateEffectiveDays(worker.practicumStartDate, worker.practicumEndDate)} días</strong>.
+                        {t('students.rotation_total', { hours: worker.requiredHours, daily: getDailyHours(worker.trainingStartTime, worker.trainingEndTime) })}<br/>
+                        {t('students.rotation_working_days', { days: calculateEffectiveDays(worker.practicumStartDate, worker.practicumEndDate) })}
                       </p>
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <div className="bg-background border rounded-md p-2 flex flex-col items-center justify-center text-center">
                           <span className="text-2xl font-bold text-primary">{Math.ceil(calculateEffectiveDays(worker.practicumStartDate, worker.practicumEndDate) / worker.capabilities.length)}</span>
-                          <span className="text-xs text-muted-foreground uppercase font-semibold">Días por Perfil</span>
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">{t('students.rotation_days_per_profile')}</span>
                         </div>
                         <div className="bg-background border rounded-md p-2 flex flex-col items-center justify-center text-center">
                           <span className="text-2xl font-bold text-primary">{worker.capabilities.length}</span>
-                          <span className="text-xs text-muted-foreground uppercase font-semibold">Rotaciones Totales</span>
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">{t('students.rotation_total_rotations')}</span>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-3 italic leading-relaxed">
-                        Tú decides qué perfil activa el estudiante en cada momento. Utiliza esta sugerencia para asegurarte de que pase tiempo equitativo en los {worker.capabilities.length} perfiles autorizados a lo largo del periodo de prácticas.
+                        {t('students.rotation_hint', { count: worker.capabilities.length })}
                       </p>
                     </div>
                   </div>
@@ -446,7 +448,7 @@ function TraineeDetailPage() {
                   </div>
                 ) : (
                   <div className="p-4 flex items-center justify-center border border-dashed rounded-lg text-xs text-muted-foreground text-center">
-                    No se han seleccionado perfiles a aprender para este estudiante.
+                    {t('students.no_profiles_assigned')}
                   </div>
                 )}
               </div>
@@ -459,13 +461,13 @@ function TraineeDetailPage() {
       {activeTab === 'absences' && (
         <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex justify-between items-end">
-            <h3 className="text-lg font-semibold tracking-tight">Registro de Ausencias</h3>
-            <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2"><Plus size={16} /> Registrar Falta Ausencia</Button>
+            <h3 className="text-lg font-semibold tracking-tight">{t('students.absences_section')}</h3>
+            <Button onClick={() => setAbsenceModalOpen(true)} className="gap-2"><Plus size={16} /> {t('students.add_absence')}</Button>
           </div>
 
           <div className="grid gap-6">
             {['active', 'future', 'past'].map(group => {
-              const labelMap = { active: 'En curso (Activas)', future: 'Próximas (Futuras)', past: 'Historial (Pasadas)' };
+              const labelMap = { active: t('students.absence_active'), future: t('students.absence_future'), past: t('students.absence_past') };
               const colorMap = { active: 'text-red-600 dark:text-red-400', future: 'text-blue-600 dark:text-blue-400', past: 'text-muted-foreground' };
               const items = absenceGroups[group] || [];
               
@@ -476,7 +478,7 @@ function TraineeDetailPage() {
                   <h4 className={`text-sm font-semibold mb-3 ${colorMap[group]}`}>{labelMap[group]}</h4>
                   {items.length === 0 ? (
                     <div className="p-4 text-center border border-dashed rounded-lg text-sm text-muted-foreground">
-                      No hay ausencias registradas en este bloque.
+                      {t('students.absence_empty')}
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-3">
@@ -496,61 +498,61 @@ function TraineeDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
               <p className="text-4xl font-bold tracking-tighter text-red-500">{totalAbsences}</p>
-              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Faltas Registradas</p>
+              <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">{t('students.analytics_absences')}</p>
             </div>
             {analyticsData.loading ? (
-              <div className="border rounded-xl p-5 text-center bg-card shadow-sm col-span-2 flex flex-col items-center justify-center text-muted-foreground text-sm">Escaneando calendario para contar turnos...</div>
+              <div className="border rounded-xl p-5 text-center bg-card shadow-sm col-span-2 flex flex-col items-center justify-center text-muted-foreground text-sm">{t('students.analytics_scanning')}</div>
             ) : (
               <>
                 <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
                   <p className="text-4xl font-bold tracking-tighter text-primary">
                     {analyticsData.shifts.reduce((acc, shift) => acc + getShiftHours(shift.shiftId), 0).toFixed(1)}h
                   </p>
-                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Horas Asignadas (Real)</p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">{t('students.analytics_hours')}</p>
                 </div>
                 <div className="border rounded-xl p-5 text-center bg-card shadow-sm flex flex-col items-center justify-center">
                   <p className="text-4xl font-bold tracking-tighter text-blue-600">
                     {worker.requiredHours ? ((analyticsData.shifts.reduce((acc, shift) => acc + getShiftHours(shift.shiftId), 0) / worker.requiredHours) * 100).toFixed(1) : 0}%
                   </p>
-                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">Progreso del Objetivo</p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-wide">{t('students.analytics_progress')}</p>
                 </div>
               </>
             )}
           </div>
           <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-xl bg-muted/10">
             <Calendar className="text-muted-foreground/50 mb-3" size={32} />
-            <h3 className="font-semibold text-lg">Control de Prácticas Activo</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">El conteo de horas se actualiza automáticamente basándose en los turnos asignados a este estudiante en el calendario.</p>
+            <h3 className="font-semibold text-lg">{t('students.analytics_title')}</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">{t('students.analytics_body')}</p>
           </div>
         </div>
       )}
 
       {/* Modals */}
-      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); }} title="Registrar Falta del Estudiante" className="max-w-md">
+      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); }} title={t('students.modal_absence_title')} className="max-w-md">
         <form onSubmit={handleAddAbsence} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Motivo</label>
+            <label className="text-sm font-medium">{t('students.modal_reason')}</label>
             <select className={selectClassName} value={absenceForm.type} onChange={e => setAbsenceForm({ ...absenceForm, type: e.target.value })}>
-              {ABSENCE_TYPES.map(t => <option key={t} value={t}>{ABSENCE_TYPE_LABELS[t]}</option>)}
+              {ABSENCE_TYPES.map(typeKey => <option key={typeKey} value={typeKey}>{t('absence_type.' + typeKey)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desde</label>
+              <label className="text-sm font-medium">{t('students.modal_from')}</label>
               <Input required type="date" value={absenceForm.dateStart} onChange={e => setAbsenceForm({ ...absenceForm, dateStart: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hasta (Incluido)</label>
+              <label className="text-sm font-medium">{t('students.modal_until')}</label>
               <Input required type="date" min={absenceForm.dateStart} value={absenceForm.dateEnd} onChange={e => setAbsenceForm({ ...absenceForm, dateEnd: e.target.value })} />
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium flex justify-between">
-              Notas adicionales
-              <span className="text-xs text-muted-foreground font-normal">Opcional</span>
+              {t('students.modal_notes')}
+              <span className="text-xs text-muted-foreground font-normal">{t('students.modal_optional')}</span>
             </label>
             <textarea className="flex w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-              value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="Cita médica, justificante de estudios..." />
+              value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="..." />
           </div>
           
           {absenceError && (
@@ -561,46 +563,46 @@ function TraineeDetailPage() {
           )}
           
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>Cancelar</Button>
-            <Button type="submit">Guardar Falta</Button>
+            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>{t('students.modal_cancel')}</Button>
+            <Button type="submit">{t('students.modal_save_absence')}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!absenceToDelete} onClose={() => setAbsenceToDelete(null)} title="Eliminar Registro de Falta">
+      <Modal isOpen={!!absenceToDelete} onClose={() => setAbsenceToDelete(null)} title={t('students.modal_delete_absence_title')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Deseas dar por válida esta ausencia (<strong>{absenceToDelete?.type && ABSENCE_TYPE_LABELS[absenceToDelete.type]}</strong>) y eliminarla del registro del estudiante para los días <strong>{absenceToDelete?.dateStart}</strong> - <strong>{absenceToDelete?.dateEnd}</strong>?</p>
+          <p className="text-sm">{t('students.modal_delete_absence_body', { type: absenceToDelete?.type && t('absence_type.' + absenceToDelete.type), start: absenceToDelete?.dateStart, end: absenceToDelete?.dateEnd })}</p>
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setAbsenceToDelete(null)}>Conservar</Button>
-            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>Sí, Eliminar permanentemente</Button>
+            <Button variant="outline" onClick={() => setAbsenceToDelete(null)}>{t('students.modal_keep')}</Button>
+            <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteAbsence}>{t('students.modal_delete_perm')}</Button>
           </div>
         </div>
       </Modal>
 
       {/* Delete Student Modal */}
-      <Modal isOpen={isDeleteConfirmOpen} onClose={() => !isDeleting && setDeleteConfirmOpen(false)} title="Eliminar Estudiante">
+      <Modal isOpen={isDeleteConfirmOpen} onClose={() => !isDeleting && setDeleteConfirmOpen(false)} title={t('students.modal_delete_student_title')}>
         <div className="space-y-4">
           <p className="text-sm text-foreground">
-            ¿Estás seguro de que deseas eliminar permanentemente a <strong className="text-destructive">{worker.name}</strong> del sistema?
+            {t('students.modal_delete_student_body', { name: worker.name })}
           </p>
           <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">
-            Esta acción <strong>no</strong> realizará un borrado suave. Eliminará al estudiante, sus ausencias, sus registros y estadísticas de formación histórica por completo. No se puede deshacer.
+            {t('students.modal_delete_student_warning')}
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={isDeleting}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={isDeleting}>{t('students.modal_cancel')}</Button>
             <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={handleDeleteStudent} disabled={isDeleting}>
-              {isDeleting ? 'Eliminando...' : 'Sí, Eliminar estudiante'}
+              {isDeleting ? t('students.modal_deleting') : t('students.modal_delete_confirm')}
             </Button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title="Registrar Periodo de Formación" className="max-w-md">
+      <Modal isOpen={isTraineeModalOpen} onClose={() => setTraineeModalOpen(false)} title={t('students.modal_period_title')} className="max-w-md">
         <form onSubmit={handleAddTraineeRecord} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Perfil a aprender</label>
+            <label className="text-sm font-medium">{t('students.modal_profile_label')}</label>
             <select className={selectClassName} required value={traineeForm.targetProfileId} onChange={e => setTraineeForm({...traineeForm, targetProfileId: e.target.value})}>
-              <option value="" disabled>Seleccionar perfil...</option>
+              <option value="" disabled>{t('students.modal_select_profile')}</option>
               {profiles.filter(p => p.isActive && worker.capabilities.includes(p.id)).map(p => (
                 <option key={p.id} value={p.id}>{getArea(p.areaId)?.name} / {p.name}</option>
               ))}
@@ -608,11 +610,11 @@ function TraineeDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desde</label>
+              <label className="text-sm font-medium">{t('students.modal_from')}</label>
               <Input required type="date" value={traineeForm.startDate} onChange={e => setTraineeForm({...traineeForm, startDate: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hasta</label>
+              <label className="text-sm font-medium">{t('students.modal_until')}</label>
               <Input required type="date" min={traineeForm.startDate} value={traineeForm.endDate} onChange={e => setTraineeForm({...traineeForm, endDate: e.target.value})} />
             </div>
           </div>
@@ -621,39 +623,39 @@ function TraineeDetailPage() {
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm flex items-start gap-3">
               <Clock size={18} className="text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-primary">Sugerencia de Tiempo</p>
+                <p className="font-semibold text-primary">{t('students.modal_period_hint_title')}</p>
                 <div className="text-muted-foreground mt-1 space-y-1 text-xs">
-                  <p>Días útiles (L-V sin festivos): <strong>{calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate)} días</strong></p>
-                  <p>A un ritmo teórico de <strong>{getDailyHours(worker.trainingStartTime, worker.trainingEndTime)}h / día</strong>:</p>
-                  <p className="text-foreground pt-1 border-t border-primary/10 mt-1">Acumulará aprox: <strong>{((calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate) * getDailyHours(worker.trainingStartTime, worker.trainingEndTime))).toFixed(1)}h de prácticas en este perfil.</strong></p>
+                  <p>{t('students.modal_working_days', { days: calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate) })}</p>
+                  <p>{t('students.modal_rate', { hours: getDailyHours(worker.trainingStartTime, worker.trainingEndTime) })}</p>
+                  <p className="text-foreground pt-1 border-t border-primary/10 mt-1">{t('students.modal_will_accumulate', { hours: ((calculateEffectiveDays(traineeForm.startDate, traineeForm.endDate) * getDailyHours(worker.trainingStartTime, worker.trainingEndTime))).toFixed(1) })}</p>
                 </div>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Notas / Tutor Encargado</label>
-            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder="Ej. Ana de mañanas..." />
+            <label className="text-sm font-medium">{t('students.modal_notes_tutor')}</label>
+            <Input value={traineeForm.notes} onChange={e => setTraineeForm({...traineeForm, notes: e.target.value})} placeholder="..." />
           </div>
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>Cancelar</Button>
-            <Button type="submit">Guardar Periodo</Button>
+            <Button type="button" variant="outline" onClick={() => setTraineeModalOpen(false)}>{t('students.modal_cancel')}</Button>
+            <Button type="submit">{t('students.modal_save_period')}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={isHireConfirmOpen} onClose={() => setHireConfirmOpen(false)} title="Contratar como Suplente">
+      <Modal isOpen={isHireConfirmOpen} onClose={() => setHireConfirmOpen(false)} title={t('students.modal_hire_title')}>
         <div className="space-y-4">
           <p className="text-sm text-foreground">
-            ¿Estás seguro de contratar a <strong>{worker.name}</strong> como Suplente oficial?
+            {t('students.modal_hire_body', { name: worker.name })}
           </p>
           <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">
-            Pasará a formar parte de la plantilla oficial de trabajadores y dejará de aparecer en la lista de estudiantes. Sus registros de prácticas se conservarán.
+            {t('students.modal_hire_warning')}
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setHireConfirmOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setHireConfirmOpen(false)}>{t('students.modal_cancel')}</Button>
             <Button className="bg-indigo-600 text-white hover:bg-indigo-700 border-0 shadow-sm" onClick={handleHire}>
-              Sí, Contratar
+              {t('students.modal_hire_confirm')}
             </Button>
           </div>
         </div>

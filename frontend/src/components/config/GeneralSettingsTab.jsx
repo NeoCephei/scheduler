@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../stores/configStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -6,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Save } from 'lucide-react';
 
 export default function GeneralSettingsTab() {
+  const { t } = useTranslation();
   const { settings, updateSetting } = useConfigStore();
   
   // Local state for the form
@@ -34,15 +36,15 @@ export default function GeneralSettingsTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Reglas de Ausencias y Vacaciones</CardTitle>
+          <CardTitle>{t('config.rules_title')}</CardTitle>
           <CardDescription>
-            Configura los parámetros globales requeridos para la petición de días libres. Estos valores servirán para advertir a los usuarios durante la creación de ausencias.
+            {t('config.rules_description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 max-w-xl">
           <div className="space-y-2">
             <label htmlFor="notice-days" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Antelación mínima requerida (en días)
+              {t('config.rules_notice_label')}
             </label>
             <div className="flex gap-4 items-center">
               <Input
@@ -51,20 +53,20 @@ export default function GeneralSettingsTab() {
                 min="0"
                 value={noticeDays}
                 onChange={(e) => setNoticeDays(e.target.value)}
-                placeholder="Ej. 15"
+                placeholder={t('config.rules_notice_placeholder')}
                 className="max-w-[150px]"
               />
               <span className="text-sm text-muted-foreground hidden sm:inline">
-                días previos al inicio de la ausencia.
+                {t('config.rules_notice_suffix')}
               </span>
             </div>
           </div>
         </CardContent>
         <CardFooter className="border-t bg-muted/50 px-6 py-4">
           <Button onClick={handleSave} disabled={isSaving} className="ml-auto">
-            {isSaving ? 'Guardando...' : (
+            {isSaving ? t('config.saving') : (
               <>
-               <Save className="mr-2 h-4 w-4" /> Guardar Cambios
+               <Save className="mr-2 h-4 w-4" /> {t('config.save_changes')}
               </>
             )}
           </Button>

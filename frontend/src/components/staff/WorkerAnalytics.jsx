@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarAPI } from '../../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format, eachDayOfInterval, isAfter } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 
 export default function WorkerAnalytics({ worker, absences }) {
+  const { t, i18n } = useTranslation();
   const currentRealYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentRealYear);
   const [yearData, setYearData] = useState([]);
@@ -111,6 +113,8 @@ export default function WorkerAnalytics({ worker, absences }) {
         weeks.push(currentWeek);
     }
 
+    const activityLocale = i18n.language === 'es' ? es : enUS;
+
     // Determine month labels based on the first occurrence of a month in a week
     const monthLabels = [];
     let currentMonth = -1;
@@ -118,7 +122,7 @@ export default function WorkerAnalytics({ worker, absences }) {
         const firstValidDay = week.find(d => d !== null);
         if (firstValidDay && firstValidDay.getMonth() !== currentMonth) {
             currentMonth = firstValidDay.getMonth();
-            monthLabels.push({ index, label: format(firstValidDay, 'MMM', { locale: es }) });
+            monthLabels.push({ index, label: format(firstValidDay, 'MMM', { locale: activityLocale }) });
         }
     });
 
@@ -163,13 +167,13 @@ export default function WorkerAnalytics({ worker, absences }) {
           <div className="flex gap-1 w-full">
              {/* Days Y-Axis */}
              <div className="flex flex-col text-[10px] text-muted-foreground font-medium pr-1 shrink-0 justify-around pt-0.5 pb-0.5">
-                <span className="leading-none text-xs">L</span>
-                <span className="leading-none text-xs">M</span>
-                <span className="leading-none text-xs">X</span>
-                <span className="leading-none text-xs">J</span>
-                <span className="leading-none text-xs">V</span>
-                <span className="leading-none text-xs">S</span>
-                <span className="leading-none text-xs">D</span>
+                <span className="leading-none text-xs">{t('days.monday_short')}</span>
+                <span className="leading-none text-xs">{t('days.tuesday_short')}</span>
+                <span className="leading-none text-xs">{t('days.wednesday_short')}</span>
+                <span className="leading-none text-xs">{t('days.thursday_short')}</span>
+                <span className="leading-none text-xs">{t('days.friday_short')}</span>
+                <span className="leading-none text-xs">{t('days.saturday_short')}</span>
+                <span className="leading-none text-xs">{t('days.sunday_short')}</span>
              </div>
 
              {/* Grid */}
@@ -185,7 +189,7 @@ export default function WorkerAnalytics({ worker, absences }) {
                        <div 
                          key={dateStr} 
                          className={`w-full aspect-square rounded-[2px] transition-colors ${!isFut ? 'cursor-pointer hover:ring-1 hover:ring-primary scale-100 hover:scale-[1.15] z-10' : ''} ${style}`}
-                         title={`${format(day, "d 'de' MMMM yyyy", { locale: es })}`}
+                         title={`${format(day, i18n.language === 'es' ? "d 'de' MMMM yyyy" : "MMMM d, yyyy", { locale: activityLocale })}`}
                        />
                      );
                    })}
@@ -196,48 +200,48 @@ export default function WorkerAnalytics({ worker, absences }) {
         </div>
         
         <div className="flex items-center gap-4 mt-6 text-xs text-muted-foreground justify-end pr-2 flex-wrap">
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-zinc-600 opacity-40 border border-dashed border-foreground/30 rounded-[2px]" />Turno (Futuro)</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 opacity-40 border border-dashed border-foreground/30 rounded-[2px]" />Ausencia (Futuro)</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 shadow-sm rounded-[2px]" />Turno Trabajado</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 shadow-sm rounded-[2px]" />Ausencia (Pasado)</div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-zinc-600 opacity-40 border border-dashed border-foreground/30 rounded-[2px]" />{t('workers.analytics.legend_shift_fut')}</div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 opacity-40 border border-dashed border-foreground/30 rounded-[2px]" />{t('workers.analytics.legend_abs_fut')}</div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 shadow-sm rounded-[2px]" />{t('workers.analytics.legend_shift_past')}</div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 shadow-sm rounded-[2px]" />{t('workers.analytics.legend_abs_past')}</div>
         </div>
       </div>
     );
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Cargando métricas...</div>;
+  if (loading) return <div className="p-8 text-center text-muted-foreground">{t('workers.analytics.loading')}</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between pb-2">
-         <h2 className="text-xl font-bold tracking-tight">Analíticas Anuales</h2>
+         <h2 className="text-xl font-bold tracking-tight">{t('workers.analytics.title')}</h2>
          <select 
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={selectedYear}
             onChange={e => setSelectedYear(Number(e.target.value))}
          >
-            {years.map(y => <option key={y} value={y}>Año {y}</option>)}
+            {years.map(y => <option key={y} value={y}>{t('workers.analytics.year_label', { year: y })}</option>)}
          </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Turnos Cubiertos ({selectedYear})</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t('workers.analytics.worked_shifts', { year: selectedYear })}</CardTitle></CardHeader>
           <CardContent><p className="text-3xl font-bold">{stats.totalWorked}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Días de Ausencia ({selectedYear})</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t('workers.analytics.absence_days', { year: selectedYear })}</CardTitle></CardHeader>
           <CardContent><p className="text-3xl font-bold text-red-500">{stats.totalAbsences}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Perfiles Dominados</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t('workers.analytics.profiles_mastered')}</CardTitle></CardHeader>
           <CardContent><p className="text-3xl font-bold text-blue-600">{new Set([...(worker.capabilities || []), worker.fixedProfileId].filter(Boolean)).size}</p></CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Historial de Actividad</CardTitle>
+          <CardTitle>{t('workers.analytics.activity_history')}</CardTitle>
         </CardHeader>
         <CardContent>
           <ActivityGrid />
@@ -246,11 +250,11 @@ export default function WorkerAnalytics({ worker, absences }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Distribución de Trabajo por Perfil ({selectedYear})</CardTitle>
+          <CardTitle>{t('workers.analytics.work_distribution', { year: selectedYear })}</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px]">
           {stats.chartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-muted-foreground">No hay datos suficientes para {selectedYear}</div>
+            <div className="h-full flex items-center justify-center text-muted-foreground">{t('workers.analytics.no_data', { year: selectedYear })}</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>

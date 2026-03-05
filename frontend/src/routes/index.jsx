@@ -190,7 +190,7 @@ function Index() {
         const subGroupsMap = {};
         shifts.forEach(s => subGroupsMap[s.id] = { name: s.name, profiles: [] });
         // Handle profiles without shift
-        subGroupsMap['none'] = { name: 'Sin Turno', profiles: [] };
+        subGroupsMap['none'] = { name: t('dashboard.no_shift'), profiles: [] };
         
         areaProfs.forEach(p => {
           const key = p.shiftId || 'none';
@@ -219,14 +219,14 @@ function Index() {
           <div className="flex items-center space-x-3">
             <AlertTriangle className="h-6 w-6 text-destructive" />
             <div>
-              <h4 className="font-semibold text-destructive">¡Alerta de Cobertura!</h4>
+              <h4 className="font-semibold text-destructive">{t('dashboard.alert_title')}</h4>
               <p className="text-sm text-destructive/90">
-                Tienes <strong>{absenceStats.uncoveredCount}</strong> ausencias sin cubrir totalmente en el calendario.
+                {t('dashboard.alert_body', { count: absenceStats.uncoveredCount })}
               </p>
             </div>
           </div>
           <Link to="/absences" className="flex items-center text-sm font-medium text-destructive hover:underline">
-            Gestionar ausencias <ArrowRight className="ml-1 h-4 w-4" />
+            {t('dashboard.manage_absences')} <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
       )}
@@ -236,26 +236,26 @@ function Index() {
         {/* Block 1: Personal */}
         <section className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" /> Personal
+            <Users className="h-5 w-5 text-primary" /> {t('dashboard.staff_section')}
           </h3>
           <div className="grid grid-cols-3 gap-4">
             
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <div className="text-sm font-medium text-muted-foreground mb-1">Fijos</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.fixed')}</div>
               <div className="text-3xl font-bold text-foreground">{staffStats.fijosActivos} <span className="text-lg text-muted-foreground font-normal">/ {staffStats.fijosTotal}</span></div>
-              <p className="text-xs text-muted-foreground mt-1">Activos hoy</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.active_today')}</p>
             </div>
 
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <div className="text-sm font-medium text-muted-foreground mb-1">Suplentes</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.substitutes')}</div>
               <div className="text-3xl font-bold text-foreground">{staffStats.suplentesActivos} <span className="text-lg text-muted-foreground font-normal">/ {staffStats.suplentesTotal}</span></div>
-              <p className="text-xs text-muted-foreground mt-1">Disponibles hoy</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.available_today')}</p>
             </div>
 
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <div className="text-sm font-medium text-muted-foreground mb-1">Estudiantes</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">{t('dashboard.students')}</div>
               <div className="text-3xl font-bold text-foreground">{staffStats.estudiantesActivos} <span className="text-lg text-muted-foreground font-normal">/ {staffStats.estudiantesTotal}</span></div>
-              <p className="text-xs text-muted-foreground mt-1">En el centro hoy</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.on_site_today')}</p>
             </div>
 
           </div>
@@ -264,33 +264,33 @@ function Index() {
         {/* Block 2: Absences */}
         <section className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <CalendarOff className="h-5 w-5 text-amber-500" /> Bajas y Vacaciones
+            <CalendarOff className="h-5 w-5 text-amber-500" /> {t('dashboard.absences_section')}
           </h3>
           <div className="grid grid-cols-2 gap-4">
             
             <div className="bg-card border rounded-xl p-4 shadow-sm flex flex-col justify-between">
-              <div className="text-sm font-medium text-muted-foreground mb-2">Ausentes Hoy</div>
+              <div className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.absent_today')}</div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span>Bajas Médicas:</span>
+                  <span>{t('dashboard.medical_leave')}</span>
                   <span className="font-semibold">{absenceStats.medicalToday}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span>Vacaciones:</span>
+                  <span>{t('dashboard.vacations')}</span>
                   <span className="font-semibold">{absenceStats.vacationToday}</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-card border rounded-xl p-4 shadow-sm flex flex-col justify-between">
-              <div className="text-sm font-medium text-muted-foreground mb-2">Próximos 7 Días</div>
+              <div className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.next_7_days')}</div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Bajas Médicas:</span>
+                  <span>{t('dashboard.medical_leave')}</span>
                   <span className="font-semibold">{absenceStats.medicalFuture}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Vacaciones:</span>
+                  <span>{t('dashboard.vacations')}</span>
                   <span className="font-semibold">{absenceStats.vacationFuture}</span>
                 </div>
               </div>
@@ -305,19 +305,19 @@ function Index() {
       <section className="pt-4 border-t space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-blue-600" /> Estado de Formación Técnica por Perfil
+            <GraduationCap className="h-5 w-5 text-blue-600" /> {t('dashboard.formation_section')}
           </h3>
           <div className="flex items-center space-x-2 text-sm">
-            <span className={!groupByShift ? "font-semibold text-primary" : "text-muted-foreground"}>Área</span>
+            <span className={!groupByShift ? "font-semibold text-primary" : "text-muted-foreground"}>{t('dashboard.group_by_area')}</span>
             <button 
               onClick={() => setGroupByShift(!groupByShift)}
               className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
-              <span className="sr-only">Cambiar agrupación</span>
+              <span className="sr-only">{t('dashboard.change_grouping')}</span>
               <span aria-hidden="true" className={`pointer-events-none absolute mx-auto h-4 w-8 rounded-full transition-colors duration-200 ease-in-out ${groupByShift ? 'bg-primary' : 'bg-primary'}`} />
               <span aria-hidden="true" className={`pointer-events-none absolute left-0 inline-block h-5 w-5 transform rounded-full border border-gray-200 bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${groupByShift ? 'translate-x-4' : 'translate-x-0'}`} />
             </button>
-            <span className={groupByShift ? "font-semibold text-primary" : "text-muted-foreground"}>Turno</span>
+            <span className={groupByShift ? "font-semibold text-primary" : "text-muted-foreground"}>{t('dashboard.group_by_shift')}</span>
           </div>
         </div>
 
@@ -339,23 +339,23 @@ function Index() {
                           <span className="font-medium flex items-center gap-1">
                             {profile.name}
                             {profile.isDanger && (
-                              <ShieldAlert className="h-4 w-4 text-destructive shrink-0" title="¡Peligro! Personal fijo <= Mínimo requerido" />
+                              <ShieldAlert className="h-4 w-4 text-destructive shrink-0" title={t('dashboard.danger_tooltip')} />
                             )}
                           </span>
                         </div>
                         
                         <div className="grid grid-cols-3 gap-1 mt-1 bg-background border border-border/50 rounded px-2 py-1.5 divide-x">
-                            <div className="text-center" title="Personal Fijo Cubriéndolo">
+                            <div className="text-center" title={t('dashboard.tooltip_fixed')}>
                                 <span className={`block text-xs font-semibold ${profile.isDanger ? 'text-destructive' : 'text-foreground'}`}>{profile.fixedCount}</span>
-                                <span className="block text-[10px] text-muted-foreground uppercase">Fijos</span>
+                                <span className="block text-[10px] text-muted-foreground uppercase">{t('dashboard.col_fixed')}</span>
                             </div>
-                            <div className="text-center" title="Suplentes que lo dominan">
+                            <div className="text-center" title={t('dashboard.tooltip_substitutes')}>
                                 <span className="block text-xs font-semibold text-foreground">{profile.suplentesCount}</span>
-                                <span className="block text-[10px] text-muted-foreground uppercase">Supl</span>
+                                <span className="block text-[10px] text-muted-foreground uppercase">{t('dashboard.col_sub')}</span>
                             </div>
-                            <div className="text-center" title="Estudiantes o Fijos formándose ahora mismo">
+                            <div className="text-center" title={t('dashboard.tooltip_trainees')}>
                                 <span className="block text-xs font-semibold text-blue-600">{profile.traineesCount}</span>
-                                <span className="block text-[10px] text-muted-foreground uppercase">Form</span>
+                                <span className="block text-[10px] text-muted-foreground uppercase">{t('dashboard.col_form')}</span>
                             </div>
                         </div>
                       </div>

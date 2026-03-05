@@ -3,6 +3,7 @@ import { createRoute, Link } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
 import { useStaffStore } from '../stores/staffStore';
 import { useConfigStore } from '../stores/configStore';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -17,6 +18,7 @@ export const Route = createRoute({
 });
 
 function StaffPage() {
+  const { t } = useTranslation();
   const { workers, loading, fetchWorkers, toggleWorkerActive, deleteWorker } = useStaffStore();
   const { areas, profiles, fetchData } = useConfigStore();
 
@@ -52,6 +54,7 @@ function StaffPage() {
 
   const WorkerRow = ({ worker }) => {
     const hasNoCaps = worker.category === 'SUPLENTE' && (!worker.capabilities || worker.capabilities.length === 0);
+    const capsCount = worker.capabilities?.length || 0;
     return (
       <div className={`flex items-center gap-3 p-4 border rounded-lg bg-card shadow-sm transition-opacity ${!worker.isActive ? 'opacity-50' : ''}`}>
         <div className="flex-1 min-w-0">
@@ -61,14 +64,14 @@ function StaffPage() {
               {worker.name}
             </Link>
             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${worker.category === 'FIJO' ? 'bg-primary/10 text-primary' : 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'}`}>
-              {worker.category}
+              {t(`workers.cat_${worker.category.toLowerCase()}`)}
             </span>
             {!worker.isActive && (
-              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Inactivo</span>
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{t('workers.badge_inactive')}</span>
             )}
             {hasNoCaps && (
               <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                <AlertTriangle size={11} /> Sin capacidades
+                <AlertTriangle size={11} /> {t('workers.badge_no_caps')}
               </span>
             )}
           </div>
@@ -80,20 +83,20 @@ function StaffPage() {
               </span>
             )}
             {worker.category === 'SUPLENTE' && worker.substituteType && (
-              <span className="capitalize">{SUBSTITUTE_TYPE_LABELS[worker.substituteType] || worker.substituteType}</span>
+              <span className="capitalize">{t(`substitute_type.${worker.substituteType}`)}</span>
             )}
-            {worker.capabilities?.length > 0 && (
-              <span>{worker.capabilities.length} capacidad{worker.capabilities.length !== 1 ? 'es' : ''}</span>
+            {capsCount > 0 && (
+              <span>{t(capsCount === 1 ? 'workers.caps_count_one' : 'workers.caps_count_other', { count: capsCount })}</span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1 border-l pl-3 shrink-0">
-          <Button variant="ghost" size="icon" title={worker.isActive ? 'Desactivar' : 'Activar'} onClick={() => toggleWorkerActive(worker.id)}>
+          <Button variant="ghost" size="icon" title={worker.isActive ? t('workers.btn_deactivate') : t('workers.btn_activate')} onClick={() => toggleWorkerActive(worker.id)}>
             {worker.isActive ? <PowerOff size={16} className="text-muted-foreground" /> : <Power size={16} className="text-primary" />}
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openEdit(worker)}><Edit2 size={16} /></Button>
           <Link to="/staff/$workerId" params={{ workerId: String(worker.id) }}>
-            <Button variant="ghost" size="icon" title="Ver ficha"><ChevronRight size={16} /></Button>
+            <Button variant="ghost" size="icon" title={t('workers.btn_view')}><ChevronRight size={16} /></Button>
           </Link>
           <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setWorkerToDelete(worker)}>
             <Trash2 size={16} />
@@ -103,25 +106,25 @@ function StaffPage() {
     );
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Cargando plantilla...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('workers.loading')}</div>;
 
   return (
     <div className="flex-1 w-full p-8 space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold">Plantilla</h1>
-          <p className="text-sm text-muted-foreground">{workers.length} trabajador{workers.length !== 1 ? 'es' : ''} en total</p>
+          <h1 className="text-2xl font-bold">{t('workers.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t(workers.length === 1 ? 'workers.count_one' : 'workers.count_other', { count: workers.length })}</p>
         </div>
-        <Button onClick={openNew} className="gap-2"><Plus size={16} /> Nuevo Trabajador</Button>
+        <Button onClick={openNew} className="gap-2"><Plus size={16} /> {t('workers.new')}</Button>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <Input placeholder="Buscar por nombre..." className="max-w-xs" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input placeholder={t('workers.search')} className="max-w-xs" value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex gap-1">
           {['ALL', 'FIJO', 'SUPLENTE'].map(cat => (
             <Button key={cat} variant={categoryFilter === cat ? 'default' : 'outline'} size="sm" onClick={() => setCategoryFilter(cat)}>
-              {cat === 'ALL' ? 'Todos' : cat}
+              {cat === 'ALL' ? t('workers.filter_all') : t(`workers.cat_${cat.toLowerCase()}`)}
             </Button>
           ))}
         </div>
@@ -130,9 +133,9 @@ function StaffPage() {
       {/* Fijos Section */}
       {(categoryFilter === 'ALL' || categoryFilter === 'FIJO') && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Personal Fijo ({fijos.length})</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('workers.fixed_section', { count: fijos.length })}</h2>
           {fijos.length === 0
-            ? <div className="p-6 text-center text-muted-foreground border border-dashed rounded-lg text-sm">No hay personal fijo.</div>
+            ? <div className="p-6 text-center text-muted-foreground border border-dashed rounded-lg text-sm">{t('workers.empty_fixed')}</div>
             : fijos.map(w => <WorkerRow key={w.id} worker={w} />)
           }
         </div>
@@ -141,9 +144,9 @@ function StaffPage() {
       {/* Suplentes Section */}
       {(categoryFilter === 'ALL' || categoryFilter === 'SUPLENTE') && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Suplentes ({suplentes.length})</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('workers.subs_section', { count: suplentes.length })}</h2>
           {suplentes.length === 0
-            ? <div className="p-6 text-center text-muted-foreground border border-dashed rounded-lg text-sm">No hay suplentes.</div>
+            ? <div className="p-6 text-center text-muted-foreground border border-dashed rounded-lg text-sm">{t('workers.empty_subs')}</div>
             : suplentes.map(w => <WorkerRow key={w.id} worker={w} />)
           }
         </div>
@@ -159,15 +162,15 @@ function StaffPage() {
       />
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={!!workerToDelete} onClose={() => setWorkerToDelete(null)} title="Eliminar Trabajador">
+      <Modal isOpen={!!workerToDelete} onClose={() => setWorkerToDelete(null)} title={t('workers.delete_title')}>
         <div className="space-y-4">
-          <p className="text-sm">¿Seguro que deseas eliminar a <strong>{workerToDelete?.name}</strong>? El trabajador dejará de aparecer en la plantilla (borrado lógico). Sus ausencias pasadas quedarán en el histórico.</p>
+          <p className="text-sm">{t('workers.delete_body', { name: workerToDelete?.name })}</p>
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setWorkerToDelete(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setWorkerToDelete(null)}>{t('workers.cancel')}</Button>
             <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0" onClick={async () => {
               await deleteWorker(workerToDelete.id);
               setWorkerToDelete(null);
-            }}>Eliminar</Button>
+            }}>{t('workers.delete_confirm')}</Button>
           </div>
         </div>
       </Modal>

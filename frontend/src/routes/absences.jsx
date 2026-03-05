@@ -4,6 +4,7 @@ import { Route as rootRoute } from './__root';
 import { useStaffStore } from '../stores/staffStore';
 import { useConfigStore } from '../stores/configStore';
 import { AbsencesAPI } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -20,6 +21,7 @@ export const Route = createRoute({
 });
 
 function GlobalAbsencesPage() {
+  const { t } = useTranslation();
   const { absences, workersMap, absencesLoading, fetchGlobalAbsences, refreshGlobalAbsences, updateAbsence, deleteAbsence } = useStaffStore();
   const { settings, fetchData: fetchConfigData } = useConfigStore();
   
@@ -138,7 +140,7 @@ function GlobalAbsencesPage() {
     setAbsenceError('');
     try {
       if (!absenceForm.workerId) {
-        setAbsenceError('Selecciona un trabajador.');
+        setAbsenceError(t('absences.error_select_worker'));
         return;
       }
       setIsCheckingImpact(true);
@@ -154,7 +156,7 @@ function GlobalAbsencesPage() {
       }
     } catch (err) {
       setIsCheckingImpact(false);
-      setAbsenceError(err.response?.data?.error || err.message || 'Error al comprobar impacto.');
+      setAbsenceError(err.response?.data?.error || err.message || t('absences.error_check'));
     }
   };
 
@@ -177,7 +179,7 @@ function GlobalAbsencesPage() {
       setImpactData(null);
       refreshGlobalAbsences();
     } catch (err) {
-      setAbsenceError(err.response?.data?.error || 'Error al guardar la ausencia.');
+      setAbsenceError(err.response?.data?.error || t('absences.error_save'));
     }
   };
 
@@ -200,12 +202,12 @@ function GlobalAbsencesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta ausencia? Esto no se puede deshacer.')) {
+    if (confirm(t('absences.confirm_delete'))) {
       try {
         await deleteAbsence(id);
         refreshGlobalAbsences();
       } catch (err) {
-        alert(err.response?.data?.error || 'Error al eliminar la ausencia');
+        alert(err.response?.data?.error || t('absences.error_delete'));
       }
     }
   };
@@ -230,7 +232,7 @@ function GlobalAbsencesPage() {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
       if (diffDays >= 0 && diffDays < minNoticeDays) {
-        noticeWarningMsg = `Aviso: Esta ausencia se está solicitando con ${diffDays} días de antelación. La normativa establece un mínimo de ${minNoticeDays} días.`;
+        noticeWarningMsg = t('absences.notice_warning', { days: diffDays, min: minNoticeDays });
       }
     }
   }
@@ -264,7 +266,7 @@ function GlobalAbsencesPage() {
       target.setHours(0, 0, 0, 0);
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return { text: diffDays === 1 ? 'Mañana' : `En ${diffDays} días`, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' };
+      return { text: diffDays === 1 ? t('absences.tomorrow') : t('absences.in_days', { count: diffDays }), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' };
     }
     if (a.dateStart <= now && a.dateEnd >= now) {
       const today = new Date();
@@ -273,9 +275,9 @@ function GlobalAbsencesPage() {
       target.setHours(0, 0, 0, 0);
       const diffTime = target - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      let text = `Quedan ${diffDays} días`;
-      if (diffDays === 0) text = 'Termina hoy';
-      if (diffDays === 1) text = 'Termina mañana';
+      let text = t('absences.days_left', { count: diffDays });
+      if (diffDays === 0) text = t('absences.ends_today');
+      if (diffDays === 1) text = t('absences.ends_tomorrow');
       return { text, color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' };
     }
     return null;
@@ -290,9 +292,9 @@ function GlobalAbsencesPage() {
   });
 
   const timeGroupLabels = {
-    ACTIVE: { title: 'En Curso', color: 'text-red-600 dark:text-red-400', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-    FUTURE: { title: 'Próximas', color: 'text-blue-600 dark:text-blue-400', badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    PAST: { title: 'Histórico Pasado', color: 'text-muted-foreground', badgeClass: 'bg-muted text-muted-foreground' }
+    ACTIVE: { title: t('absences.group_active'), color: 'text-red-600 dark:text-red-400', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+    FUTURE: { title: t('absences.group_future'), color: 'text-blue-600 dark:text-blue-400', badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    PAST: { title: t('absences.group_past'), color: 'text-muted-foreground', badgeClass: 'bg-muted text-muted-foreground' }
   };
 
   const groupAbsencesByWorker = (absencesArray) => {
@@ -310,18 +312,18 @@ function GlobalAbsencesPage() {
       });
   };
 
-  if (absencesLoading && absences.length === 0) return <div className="p-8 text-muted-foreground flex items-center gap-2"><RefreshCw className="animate-spin" size={16} /> Cargando panel global...</div>;
+  if (absencesLoading && absences.length === 0) return <div className="p-8 text-muted-foreground flex items-center gap-2"><RefreshCw className="animate-spin" size={16} /> {t('absences.loading')}</div>;
 
   return (
     <div className="flex-1 w-full p-8 space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Registro Global de Ausencias</h1>
-          <p className="text-sm text-muted-foreground mt-1">Supervisión centralizada de permisos y vacaciones de toda la plantilla.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('absences.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t('absences.subtitle')}</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button onClick={openCreateModal} className="gap-2 shrink-0">
-            <Plus size={16} /> Añadir Ausencia
+            <Plus size={16} /> {t('absences.add')}
           </Button>
         </div>
       </div>
@@ -330,7 +332,7 @@ function GlobalAbsencesPage() {
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <Input 
-            placeholder="Buscar por nombre de trabajador..." 
+            placeholder={t('absences.search')} 
             className="pl-9 bg-background" 
             value={search} 
             onChange={e => setSearch(e.target.value)} 
@@ -338,10 +340,10 @@ function GlobalAbsencesPage() {
         </div>
         <div className="flex gap-1.5 p-1 bg-muted/50 rounded-lg">
           {[
-            { id: 'ALL', label: 'Todas' },
-            { id: 'ACTIVE', label: 'En curso' },
-            { id: 'FUTURE', label: 'Próximas' },
-            { id: 'PAST', label: 'Histórico' }
+            { id: 'ALL', label: t('absences.filter_all') },
+            { id: 'ACTIVE', label: t('absences.filter_active') },
+            { id: 'FUTURE', label: t('absences.filter_future') },
+            { id: 'PAST', label: t('absences.filter_past') }
           ].map(f => (
             <Button 
               key={f.id} 
@@ -360,8 +362,8 @@ function GlobalAbsencesPage() {
         {filteredAbsences.length === 0 ? (
           <div className="bg-card border rounded-xl overflow-hidden shadow-sm p-12 text-center flex flex-col items-center">
             <Calendar size={48} className="text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-medium">Sin coincidencias</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mt-1">No se han encontrado ausencias que coincidan con los filtros seleccionados.</p>
+            <h3 className="text-lg font-medium">{t('absences.empty_title')}</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mt-1">{t('absences.empty_body')}</p>
           </div>
         ) : (
           ['ACTIVE', 'FUTURE', 'PAST'].map(groupKey => {
@@ -376,7 +378,7 @@ function GlobalAbsencesPage() {
                 <h2 className={`font-semibold text-lg flex items-center gap-2 ${tg.color}`}>
                   {tg.title}
                   <span className="text-xs font-normal bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                    {timeAbsences.length} ausencias
+                    {t('absences.count', { count: timeAbsences.length })}
                   </span>
                 </h2>
                 
@@ -397,7 +399,7 @@ function GlobalAbsencesPage() {
                           </span>
                           <div className="mt-4">
                             <Link to="/staff/$workerId" params={{ workerId: String(wg.worker.id) }}>
-                              <Button variant="outline" size="sm" className="w-full h-8 text-xs">Ver Ficha</Button>
+                              <Button variant="outline" size="sm" className="w-full h-8 text-xs">{t('absences.btn_view')}</Button>
                             </Link>
                           </div>
                         </div>
@@ -413,7 +415,7 @@ function GlobalAbsencesPage() {
                             <div key={absence.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                               <div className="flex-1">
                                 <div className="text-sm font-medium flex items-center gap-2">
-                                  <span>{absence.dateStart} al {absence.dateEnd}</span>
+                                  <span>{t('absences.date_range', { start: absence.dateStart, end: absence.dateEnd })}</span>
                                   {subLabel && (
                                     <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${subLabel.color}`}>
                                       {subLabel.text}
@@ -423,11 +425,11 @@ function GlobalAbsencesPage() {
                                   {cov && cov.required && groupKey !== 'PAST' && (
                                     cov.isFullyCovered ? (
                                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
-                                        Totalmente Cubierta
+                                        {t('absences.fully_covered')}
                                       </span>
                                     ) : (
                                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
-                                        Faltan {cov.uncoveredCount} turnos por cubrir
+                                        {t('absences.shifts_missing', { count: cov.uncoveredCount })}
                                       </span>
                                     )
                                   )}
@@ -444,13 +446,13 @@ function GlobalAbsencesPage() {
                               <div className="flex items-center gap-2 mt-4 sm:mt-0 sm:ml-4 shrink-0">
                                 {wg.worker.category === 'FIJO' && groupKey !== 'PAST' && (
                                   <Button variant="secondary" size="sm" onClick={() => { setImpactModalAbsence(absence); loadImpactData(absence); }}>
-                                    Gestionar Suplencias
+                                    {t('absences.btn_manage')}
                                   </Button>
                                 )}
-                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(absence)} title="Editar ausencia">
+                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(absence)} title={t('absences.btn_edit')}>
                                   <Edit size={14} />
                                 </Button>
-                                <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(absence.id)} title="Eliminar ausencia">
+                                <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(absence.id)} title={t('absences.btn_delete')}>
                                   <Trash2 size={14} />
                                 </Button>
                               </div>
@@ -467,11 +469,11 @@ function GlobalAbsencesPage() {
         )}
       </div>
 
-      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); setImpactData(null); }} title={impactData ? "Impacto en el Calendario" : (editingAbsenceId ? "Editar Ausencia" : "Registrar Ausencia Global")}>
+      <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); setImpactData(null); }} title={impactData ? t('absences.modal_impact_title') : (editingAbsenceId ? t('absences.modal_edit_title') : t('absences.modal_create_title'))}>
         {!impactData ? (
         <form onSubmit={handleCheckImpact} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Trabajador Afectado</label>
+            <label className="text-sm font-medium">{t('absences.modal_worker')}</label>
             <select 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" 
               value={absenceForm.workerId} 
@@ -479,7 +481,7 @@ function GlobalAbsencesPage() {
               required
               disabled={!!editingAbsenceId}
             >
-              <option value="" disabled>Selecciona un trabajador...</option>
+              <option value="" disabled>{t('absences.modal_select_worker')}</option>
               {Object.values(workersMap)
                 .sort((a,b) => a.name.localeCompare(b.name))
                 .map(w => <option key={w.id} value={w.id}>{w.name}</option>)
@@ -487,7 +489,7 @@ function GlobalAbsencesPage() {
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Motivo</label>
+            <label className="text-sm font-medium">{t('absences.modal_reason')}</label>
             <select 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" 
               value={absenceForm.type} 
@@ -498,18 +500,18 @@ function GlobalAbsencesPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desde</label>
+              <label className="text-sm font-medium">{t('absences.modal_from')}</label>
               <Input required type="date" value={absenceForm.dateStart} onChange={e => setAbsenceForm({ ...absenceForm, dateStart: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Hasta (Incluido)</label>
+              <label className="text-sm font-medium">{t('absences.modal_until')}</label>
               <Input required type="date" min={absenceForm.dateStart} value={absenceForm.dateEnd} onChange={e => setAbsenceForm({ ...absenceForm, dateEnd: e.target.value })} />
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium flex justify-between">
-              Notas adicionales
-              <span className="text-xs text-muted-foreground font-normal">Opcional</span>
+              {t('absences.modal_notes')}
+              <span className="text-xs text-muted-foreground font-normal">{t('absences.modal_optional')}</span>
             </label>
             <textarea className="flex w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               value={absenceForm.note} onChange={e => setAbsenceForm({ ...absenceForm, note: e.target.value })} placeholder="Ej: Certificado entregado al departamento de RRHH..." />
@@ -530,9 +532,9 @@ function GlobalAbsencesPage() {
           )}
           
           <div className="pt-2 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={() => { setAbsenceModalOpen(false); setAbsenceError(''); }}>{t('absences.modal_cancel')}</Button>
             <Button type="submit" disabled={isCheckingImpact}>
-              {isCheckingImpact ? 'Comprobando...' : 'Guardar Ausencia'}
+              {isCheckingImpact ? t('absences.modal_checking') : t('absences.modal_save')}
             </Button>
           </div>
         </form>
@@ -541,8 +543,8 @@ function GlobalAbsencesPage() {
             <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 p-4 rounded-lg border border-amber-200 dark:border-amber-800 flex items-start gap-3">
               <AlertTriangle className="shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">Esta ausencia dejará {impactData.length} turnos al descubierto.</p>
-                <p className="text-sm opacity-90 mt-1">Antes de guardar, puedes revisar los turnos afectados. Te recomendamos ir al calendario para asignar suplentes.</p>
+                <p className="font-semibold">{t('absences.impact_warning', { count: impactData.length })}</p>
+                <p className="text-sm opacity-90 mt-1">{t('absences.impact_hint')}</p>
               </div>
             </div>
 
@@ -558,18 +560,18 @@ function GlobalAbsencesPage() {
             </div>
 
             <div className="pt-4 flex justify-between gap-2 border-t mt-4">
-              <Button type="button" variant="outline" onClick={() => setImpactData(null)}>Atrás</Button>
+              <Button type="button" variant="outline" onClick={() => setImpactData(null)}>{t('absences.impact_back')}</Button>
               <div className="flex gap-2">
                 <Button type="button" onClick={async () => {
                   await executeSave();
                 }}>
-                  Guardar de todos modos
+                  {t('absences.impact_save_anyway')}
                 </Button>
                 <Button type="button" onClick={async () => {
                   await executeSave();
                   navigate({ to: '/calendar' });
                 }} className="bg-amber-600 hover:bg-amber-700 text-white">
-                  Guardar e ir al Calendario <ArrowRight size={16} className="ml-2" />
+                  {t('absences.impact_save_and_go')} <ArrowRight size={16} className="ml-2" />
                 </Button>
               </div>
             </div>
@@ -578,17 +580,17 @@ function GlobalAbsencesPage() {
       </Modal>
 
       {/* View/Manage Impact Modal */}
-      <Modal isOpen={!!impactModalAbsence} onClose={() => { setImpactModalAbsence(null); refreshGlobalAbsences(); }} title="Gestión de Suplencias">
+      <Modal isOpen={!!impactModalAbsence} onClose={() => { setImpactModalAbsence(null); refreshGlobalAbsences(); }} title={t('absences.manage_title')}>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Revisando los turnos afectados por esta ausencia. Puedes hacer click en asignar para cubrir un turno que haya quedado descubierto.
+            {t('absences.manage_body')}
           </p>
           
           {isImpactLoading ? (
             <div className="p-8 text-center text-muted-foreground flex justify-center"><RefreshCw className="animate-spin" size={20} /></div>
           ) : impactModalData?.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
-              Este trabajador no genera turnos descubiertos automáticos (probablemente es suplente).
+              {t('absences.manage_no_shifts')}
             </div>
           ) : (
             <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
@@ -604,10 +606,10 @@ function GlobalAbsencesPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`font-medium ${isUncovered ? 'text-red-500' : 'text-foreground'}`}>
-                        {isUncovered ? 'Descubierto' : cell.allocatedWorkerName}
+                        {isUncovered ? t('absences.manage_uncovered') : cell.allocatedWorkerName}
                       </span>
                       {isPast ? (
-                        <Button size="sm" variant="ghost" disabled>Pasado</Button>
+                        <Button size="sm" variant="ghost" disabled>{t('absences.manage_past')}</Button>
                       ) : (
                         <Button 
                           size="sm" 
@@ -618,7 +620,7 @@ function GlobalAbsencesPage() {
                             cellData: cell
                           })}
                         >
-                          {isUncovered ? 'Asignar' : 'Modificar'}
+                          {isUncovered ? t('absences.manage_assign') : t('absences.manage_modify')}
                         </Button>
                       )}
                     </div>
@@ -629,7 +631,7 @@ function GlobalAbsencesPage() {
           )}
 
           <div className="flex justify-end pt-4 mt-2 border-t">
-            <Button onClick={() => setImpactModalAbsence(null)}>Cerrar</Button>
+            <Button onClick={() => setImpactModalAbsence(null)}>{t('absences.manage_close')}</Button>
           </div>
         </div>
       </Modal>

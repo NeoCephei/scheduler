@@ -20,10 +20,10 @@ function SupportPage() {
             <Coffee size={40} className="animate-pulse" />
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            {t('support.title', 'Apoya el Desarrollo')}
+            {t('support.title')}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t('support.subtitle', 'Scheduler es una herramienta gratuita y de código abierto. Si te resulta útil en tu día a día, considera invitarme a un café virtual.')}
+            {t('support.subtitle')}
           </p>
         </div>
 
@@ -32,20 +32,20 @@ function SupportPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Heart className="text-rose-500" />
-                {t('support.why_donate', '¿Por qué donar?')}
+                {t('support.why_donate')}
               </h2>
               <ul className="space-y-4 text-muted-foreground mb-8">
                 <li className="flex items-start gap-3">
                   <Star className="text-primary mt-1 shrink-0" size={18} />
-                  <span>Mantiene la aplicación <strong>100% gratuita</strong> y libre de anuncios.</span>
+                  <span dangerouslySetInnerHTML={{ __html: t('support.benefit_free') }}></span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Zap className="text-amber-500 mt-1 shrink-0" size={18} />
-                  <span>Motiva el desarrollo de <strong>nuevas funcionalidades</strong> y actualizaciones constantes.</span>
+                  <span dangerouslySetInnerHTML={{ __html: t('support.benefit_features') }}></span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Coffee className="text-orange-500 mt-1 shrink-0" size={18} />
-                  <span>¡Me paga el café que necesito para programar de madrugada!</span>
+                  <span>{t('support.benefit_coffee')}</span>
                 </li>
               </ul>
             </div>
@@ -55,7 +55,7 @@ function SupportPage() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-rose-400"></div>
             <h3 className="text-2xl font-bold mb-2">Buy Me a Coffee</h3>
             <p className="text-muted-foreground mb-8 max-w-sm">
-              Es una forma rápida, segura y directa de apoyar económicamente a creadores de contenido y desarrolladores de software libre.
+              {t('support.bmc_description')}
             </p>
             
             <a 
@@ -65,15 +65,15 @@ function SupportPage() {
               className="group inline-flex items-center justify-center gap-3 bg-[#FFDD00] hover:bg-[#FFC000] text-black font-bold text-lg px-8 py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1"
             >
               <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="Buy me a coffee" className="h-6 w-6" />
-              Invítame a un café
+              {t('support.bmc_button')}
             </a>
             <p className="mt-4 text-sm font-medium text-muted-foreground/80">buymeacoffee.com/mcampot93</p>
           </div>
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>Hecho con ❤️ para facilitar la gestión de turnos.</p>
-          <p className="mt-1">¡Gracias por usar Scheduler!</p>
+          <p>{t('support.footer_made_with')}</p>
+          <p className="mt-1">{t('support.footer_thanks')}</p>
         </div>
       </div>
     </div>

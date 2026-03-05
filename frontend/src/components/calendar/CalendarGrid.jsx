@@ -1,16 +1,28 @@
 import { useState, useMemo } from 'react';
 import { useCalendarStore } from '../../stores/calendarStore';
 import { useConfigStore } from '../../stores/configStore';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert, AlertCircle, GraduationCap } from 'lucide-react';
 import AssignmentModal from './AssignmentModal';
 
-const DAYS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const SHORT_DAYS_ES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const getDayNames = (t) => ({
+  full: [
+    t('days.monday'), t('days.tuesday'), t('days.wednesday'), 
+    t('days.thursday'), t('days.friday'), t('days.saturday'), t('days.sunday')
+  ],
+  short: [
+    t('days.monday_short'), t('days.tuesday_short'), t('days.wednesday_short'), 
+    t('days.thursday_short'), t('days.friday_short'), t('days.saturday_short'), t('days.sunday_short')
+  ]
+});
 
 export default function CalendarGrid() {
+  const { t } = useTranslation();
   const { matrixData, groupMode, viewMode, getStartEndDates } = useCalendarStore();
   const { areas, shifts } = useConfigStore();
   const { startDateObj, endDateObj } = getStartEndDates();
+
+  const dayNames = useMemo(() => getDayNames(t), [t]);
   
   const [selectedCell, setSelectedCell] = useState(null);
 
@@ -24,7 +36,7 @@ export default function CalendarGrid() {
       const weekDay = jsDay === 0 ? 6 : jsDay - 1; // 0=Mon, 6=Sun
       cols.push({
         date: dateStr,
-        dayStr: viewMode === 'week' ? DAYS_ES[weekDay] : SHORT_DAYS_ES[weekDay],
+        dayStr: viewMode === 'week' ? dayNames.full[weekDay] : dayNames.short[weekDay],
         dayNum: cur.getDate(),
         isWeekend: weekDay >= 5
       });
@@ -83,7 +95,7 @@ export default function CalendarGrid() {
            const a = areas.find(x => x.id.toString() === areaId);
            return {
              id: areaId,
-             title: a ? a.name : 'Sin Área',
+             title: a ? a.name : t('calendar.no_area'),
              color: a ? a.color : 'transparent',
              profiles: groupedByShift[shiftId][areaId].sort((p1,p2)=>p1.profileName.localeCompare(p2.profileName))
            }
@@ -91,7 +103,7 @@ export default function CalendarGrid() {
 
         return {
           id: shiftId,
-          title: s ? s.name : 'Sin Turno',
+          title: s ? s.name : t('calendar.no_shift'),
           color: 'transparent',
           subGroups
         };
@@ -123,7 +135,7 @@ export default function CalendarGrid() {
            const s = shifts.find(x => x.id.toString() === shiftId);
            return {
              id: shiftId,
-             title: s ? s.name : 'Sin Turno',
+             title: s ? s.name : t('calendar.no_shift'),
              color: 'transparent',
              profiles: groupedByArea[areaId][shiftId].sort((p1,p2)=>p1.profileName.localeCompare(p2.profileName))
            }
@@ -131,7 +143,7 @@ export default function CalendarGrid() {
 
         return {
           id: areaId,
-          title: a ? a.name : 'Sin Área',
+          title: a ? a.name : t('calendar.no_area'),
           color: a ? a.color : 'transparent',
           subGroups
         };
@@ -156,7 +168,7 @@ export default function CalendarGrid() {
         <div className="sticky top-0 z-40 flex border-b bg-background shadow-sm">
           {/* Top Left Corner */}
           <div className="sticky left-0 z-50 w-48 shrink-0 border-r bg-muted p-3 flex items-center justify-center font-semibold text-sm shadow-[1px_0_0_0_#e5e7eb] dark:shadow-[1px_0_0_0_#1f2937]">
-            {groupMode === 'shift' ? 'Turnos y Perfiles' : 'Áreas y Perfiles'}
+            {groupMode === 'shift' ? t('calendar.header_shifts') : t('calendar.header_areas')}
           </div>
           
           {/* Dates Columns */}
@@ -179,7 +191,7 @@ export default function CalendarGrid() {
         {/* Body */}
         {rows.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground italic">
-            Esperando datos para mostrar...
+            {t('calendar.waiting')}
           </div>
         ) : rows.map(group => (
           <div key={group.id} className="mb-4">
@@ -250,7 +262,7 @@ export default function CalendarGrid() {
                               {/* Time */}
                               <div className="text-[10px] text-muted-foreground font-medium flex justify-between items-start">
                                 <span>{cell.timeSlot.startTime} - {cell.timeSlot.endTime}</span>
-                                {isOverride && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 mr-0.5" title="Modificado Manualmente" />}
+                                {isOverride && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 mr-0.5" title={t('calendar.manual_override')} />}
                               </div>
 
                               {/* Content */}
@@ -258,7 +270,7 @@ export default function CalendarGrid() {
                                 {isUncovered ? (
                                   <div className="flex flex-col items-center gap-1 text-red-500 dark:text-red-400">
                                     <AlertCircle size={18} />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-none">Descubierto</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-none">{t('calendar.uncovered')}</span>
                                   </div>
                                 ) : (
                                   <span className="text-xs font-semibold text-center leading-tight truncate px-1 text-foreground">

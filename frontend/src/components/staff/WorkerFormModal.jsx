@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStaffStore } from '../../stores/staffStore';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -7,6 +8,7 @@ import { SUBSTITUTE_TYPES, SUBSTITUTE_TYPE_LABELS } from '../../lib/constants';
 import { ShieldAlert } from 'lucide-react';
 
 export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas, profiles }) {
+  const { t } = useTranslation();
   const { addWorker, updateWorker } = useStaffStore();
 
   const buildInitialForm = (worker) => ({
@@ -67,19 +69,19 @@ export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas,
   const selectClassName = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={editingWorker ? 'Editar Trabajador' : 'Nuevo Trabajador'} className="max-w-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={editingWorker ? t('workers.modal_edit_title') : t('workers.modal_new_title')} className="max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Name + Category */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Nombre completo</label>
-            <Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej. Ana García López" />
+            <label className="text-sm font-medium">{t('workers.field_name')}</label>
+            <Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={t('workers.field_name_placeholder')} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Categoría</label>
+            <label className="text-sm font-medium">{t('workers.field_category')}</label>
             <select className={selectClassName} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-              <option value="FIJO">Fijo</option>
-              <option value="SUPLENTE">Suplente</option>
+              <option value="FIJO">{t('workers.cat_fijo')}</option>
+              <option value="SUPLENTE">{t('workers.cat_suplente')}</option>
             </select>
           </div>
         </div>
@@ -87,9 +89,9 @@ export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas,
         {/* Conditional: Fijo → Perfil. Suplente → Tipo */}
         {form.category === 'FIJO' ? (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Perfil Fijo (Silla Asignada)</label>
+            <label className="text-sm font-medium">{t('workers.field_fixed_profile')}</label>
             <select className={selectClassName} required value={form.fixedProfileId} onChange={e => setForm({ ...form, fixedProfileId: e.target.value })}>
-              <option value="" disabled>Selecciona un perfil...</option>
+              <option value="" disabled>{t('workers.field_select_profile')}</option>
               {areas.map(area => (
                 <optgroup key={area.id} label={area.name}>
                   {profiles.filter(p => p.areaId === area.id).map(p => (
@@ -101,9 +103,9 @@ export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas,
           </div>
         ) : (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Tipo de Suplencia</label>
+            <label className="text-sm font-medium">{t('workers.field_sub_type')}</label>
             <select className={selectClassName} value={form.substituteType} onChange={e => setForm({ ...form, substituteType: e.target.value })}>
-              {SUBSTITUTE_TYPES.map(t => <option key={t} value={t}>{SUBSTITUTE_TYPE_LABELS[t]}</option>)}
+              {SUBSTITUTE_TYPES.map(st => <option key={st} value={st}>{t(`substitute_type.${st}`)}</option>)}
             </select>
           </div>
         )}
@@ -111,10 +113,10 @@ export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas,
         {/* Capabilities */}
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-2">
-            Capacidades (Perfiles que puede cubrir)
+            {t('workers.field_capabilities')}
             {form.category === 'SUPLENTE' && form.capabilities.length === 0 && (
               <span className="flex items-center gap-1 text-amber-600 text-xs font-normal">
-                <ShieldAlert size={12} /> Sin capacidades — no recibirá sugerencias
+                <ShieldAlert size={12} /> {t('workers.field_no_caps_warning')}
               </span>
             )}
           </label>
@@ -144,23 +146,23 @@ export default function WorkerFormModal({ isOpen, onClose, editingWorker, areas,
                 </div>
               );
             })}
-            {areas.length === 0 && <div className="p-4 text-sm text-muted-foreground">No hay perfiles configurados aún.</div>}
+            {areas.length === 0 && <div className="p-4 text-sm text-muted-foreground">{t('workers.field_no_profiles')}</div>}
           </div>
         </div>
 
         {/* Notes */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Anotaciones (opcional)</label>
+          <label className="text-sm font-medium">{t('workers.field_notes')}</label>
           <textarea
             className="flex w-full min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-            placeholder="Notas internas sobre este trabajador..."
+            placeholder={t('workers.field_notes_placeholder')}
           />
         </div>
 
         <div className="pt-4 flex justify-end gap-2 border-t">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button type="submit">{editingWorker ? 'Guardar Cambios' : 'Crear Trabajador'}</Button>
+          <Button type="button" variant="outline" onClick={onClose}>{t('workers.cancel')}</Button>
+          <Button type="submit">{editingWorker ? t('workers.btn_save_changes') : t('workers.btn_create')}</Button>
         </div>
       </form>
     </Modal>

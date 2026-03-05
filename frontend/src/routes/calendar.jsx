@@ -18,7 +18,7 @@ export const Route = createRoute({
 });
 
 function CalendarPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { 
     viewMode, groupMode, currentDate, 
     setViewMode, setGroupMode, goNext, goPrev, goToday, 
@@ -53,10 +53,10 @@ function CalendarPage() {
           </h2>
           <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
             <span className="font-semibold text-foreground">
-              {new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(currentDate).toUpperCase()}
+              {new Intl.DateTimeFormat(i18n.language === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' }).format(currentDate).toUpperCase()}
             </span>
             {viewMode === 'week' && (
-              <span>({startStr} al {endStr})</span>
+              <span>({startStr} {t('calendar.range_separator')} {endStr})</span>
             )}
           </p>
         </div>
