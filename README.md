@@ -1,156 +1,93 @@
-# Scheduler — Planificador de Horaris
+# 📅 Scheduler — Intelligent Shift & Staff Planner
 
-Resumen breve
+**Scheduler** is a robust, offline-first desktop application designed to simplify complex shift planning and staff management. Tailored for healthcare departments, hospitality, or any team-based environment, it focuses on area-based seat management, substitute tracking, and collision-free absence planning.
 
-- Scheduler es una aplicación de planificación de turnos y gestión de plantilla, privada y offline-first, pensada para gestión de personal por áreas, perfiles, plantillas y ausencias.
+---
 
-Objetivos
+## ✨ Key Features (v1.0.1)
 
-- Interfaz de escritorio instalable (Electron) que funciona sin conexión.
-- Almacenamiento local SQL (SQLite) para persistencia y consulta eficiente.
-- Autenticación local (hash de contraseñas) y opcional cifrado del fichero de datos.
-- Páginas principales: Dashboard, Calendario, Plantilla, Ausencias, Configuración.
+### 📊 Smart Dashboard
+- **Instant Overview**: Cards tracking current staff status (Total fixed, substitutes, students, and active today).
+- **Critical Alerts**: Real-time detection of uncovered gaps due to unplanned absences.
+- **Formation Tracking**: Visual progress of trainee rotations and specific learning periods.
 
-Características clave (resumen)
+### 🗓️ Advanced Graphical Calendar
+- **Dynamic Views**: Switch between **Weekly** and **Monthly** perspectives in a single click.
+- **Smart Grouping**: Reorganize the grid instantly by **Reference Shift** (Morning, Afternoon, Night) or **Physical Area** (ER, ICU, etc.).
+- **Live Overrides**: Manually assign or swap workers for specific days with an intuitive modal.
+- **Print & Export**: High-quality landscape printing support for physical wall schedules.
 
-- Dashboard: fecha actual, 4 tarjetas de resumen, aviso de ausencias sin cobertura, bloque de formación por área.
-- Calendario: vistas General / Por Área / Ausencias; vista Semana / Mes; navegación (prev/next/hoy); leyendas para turnos y áreas; tabla por perfil/trabajador/días.
-- Plantilla: CRUD de trabajadores con datos de contrato, perfiles fijos y habilidades adicionales.
-- Ausencias: crear ausencias, mostrar sin cobertura primero con sugerencias, gestionar coberturas.
-- Configuración: definir áreas (nombre + color), crear perfiles por área (nombre, turno, horario, días de la semana).
+### 👥 Staff & Talent Management
+- **Categorization**: Manage **Fixed** staff (assigned to permanent seats), **Substitutes** (external/internal), and **Students** (trainees).
+- **Capability Engine**: Define mastered profiles for each substitute to receive automatic assignment suggestions.
+- **Detailed Analytics**: Annual activity heatmaps (GitHub style) for every worker, showing work distribution and absence history.
 
-Propuesta de tech stack (recomendado)
+### 🚑 Absence & Conflict Radar
+- **Comprehensive Tracking**: Manage Vacations, Sick Leave, Union Leave, and more.
+- **Impact Analysis**: Before saving an absence, the system warns you exactly how many shifts will become uncovered in the calendar.
+- **One-Click Coverage**: Integrated management tool to find and assign available substitutes for empty slots.
 
-- Runtime y UI: Electron + React + TypeScript + Vite (renderer) — rápido para desarrollo y builds.
-- Estilado: TailwindCSS o CSS Modules (opcional) para UI consistente.
-- Base de datos local: SQLite con `better-sqlite3` (bindings nativos, síncrono y con buen rendimiento). Alternativa: `sqlite3` o un ORM ligero (TypeORM) si se desea capa de abstracción.
-- Autenticación: `bcrypt` para hash de contraseñas; almacenar usuarios en la DB local. Considerar cifrar la DB (SQLCipher) para mayor seguridad.
-- Empaquetado / distribución: `electron-builder` para crear instaladores multiplataforma.
-- Contenerización dev: Dockerfile / docker-compose para entorno de desarrollo (instalar dependencias, correr tests, builds reproducibles).
+### ⚙️ Full Configuration Engine
+- **Custom Areas**: Create department zones with specific colors for visual identity.
+- **Seat Mapping**: Define "Profiles" (slots) within areas, linked to base shifts and recurring schedules.
+- **Holiday Calendar**: Global holiday management that automatically adjusts profile logic.
 
-Razones de la elección
+---
 
-- Electron+React+TypeScript: amplia comunidad, permitiendo una UI de calidad y builds instalables.
-- SQLite: motor ligero, archivo único que facilita copia de seguridad y offline.
-- `better-sqlite3`: sencillo de usar desde Node y con buen rendimiento en entornos locales.
+## 🛠️ Technical Stack
 
-Seguridad y privacidad
+- **Frontend**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/)
+- **State & Routing**: [Zustand](https://github.com/pmndrs/zustand) & [TanStack Router](https://tanstack.com/router/)
+- **Backend**: [Node.js](https://nodejs.org/) + [Express 5](https://expressjs.com/)
+- **Database**: [SQLite](https://sqlite.org/) via [Better-SQLite3](https://github.com/WiseLibs/better-sqlite3) & [Drizzle ORM](https://orm.drizzle.team/)
+- **Desktop Wrapper**: [Electron](https://www.electronjs.org/)
+- **i18n**: Fully Bilingual (**English / Spanish**) via `react-i18next`.
 
-- La app será privada por diseño y funcionará offline.
-- Guardar contraseñas con `bcrypt` y ofrecer opción de cifrar el fichero DB (recomendado para producción).
+---
 
-Estructura y flujo de datos (alto nivel)
+## 🚀 Getting Started
 
-- UI <-> Servicio local (Electron main) <-> Capa DB (SQLite).
-- El proceso `main` de Electron expone un API IPC segura para operaciones CRUD; la lógica crítica (auth, DB) se ejecuta en `main`.
+### Prerequisites
+- Node.js (v18+)
+- npm
 
-Plan de implementación (etapas)
+### Installation
+1. Clone the repository
+2. Install dependencies at the root:
+   ```bash
+   npm install
+   ```
+3. Install dependencies for sub-projects:
+   ```bash
+   cd frontend && npm install
+   cd ../backend && npm install
+   ```
 
-1. Preparar repo: `package.json`, TypeScript, ESLint/Prettier, `electron-builder` config.
-2. Scaffold: Electron + React + Vite template en TypeScript.
-3. Capa persistencia: inicializar SQLite y escribir migraciones/seed básico (áreas, turnos, perfiles de ejemplo).
-4. Auth local: registrar / iniciar sesión (bcrypt). Sesión mantenida en memoria del proceso main.
-5. Pages básicas: Dashboard, Calendario (esqueleto), Plantilla, Ausencias, Configuración (UI inicial).
-6. Implementar la lógica de calendario y reglas para asignación automática (algoritmo de generación basado en perfiles fijos y suplencias).
-7. Mejoras: búsquedas, filtros por área, arrastrar/soltar en calendario, edición rápida in-place.
-8. Tests unitarios y de integración, empaquetado con `electron-builder`.
-
-Scripts sugeridos (desarrollo)
-
+### Development Mode
+To run the dual-server setup with Electron:
+```bash
+npm start
 ```
-# instalar dependencias
-npm install
 
-# correr dev (renderer + electron)
-npm run dev
-
-# build
-npm run build
-
-# empaquetar (electron-builder)
+### Building for Production
+To package the app into a standalone executable (Windows/macOS/Linux):
+```bash
+# Build the frontend and generate the installer
 npm run dist
 ```
+The installer will be generated in the `release/` directory.
 
-Docker / desarrollo reproducible
+---
 
-- Se puede crear un contenedor Node para instalar dependencias, ejecutar linters y construir artefactos. Para correr la app en modo GUI se recomienda trabajar fuera del contenedor o usar X11/Forwarding según plataforma.
+## 🔒 Security & Privacy
+- **100% Offline**: Data never leaves your machine. The SQLite database is stored locally.
+- **Portable**: Easy to backup by simply copying the `database.sqlite` file.
+- **No Dependencies**: Works without an internet connection once installed.
 
-Decisiones abiertas (elige una)
+---
 
-- a) ORM o queries directas con `better-sqlite3`?
-- b) ¿Usamos TailwindCSS o CSS tradicional/component-based styles?
-- c) ¿Queréis cifrado de DB desde el inicio (SQLCipher) o dejarlo opcional?
+## 📄 License
+This project is licensed under the [ISC License](LICENSE).
 
-Cómo procedo ahora
-
-- Confirma las decisiones de tech stack y preparo el scaffold inicial: `package.json`, plantilla de Electron+React+TypeScript, Dockerfile de dev, y esquema DB inicial.
-
-Si querés que documente más el modelo de datos o el algoritmo de asignación automática, lo desarrollo y lo añado al repo.
-
-Empaquetado y distribución
-
-- Para crear un instalador local tras construir la app ejecutar:
-
-```
-npm install --production=false
-npm run dist
-```
-
-Esto ejecutará `vite build` (renderer), `tsc` (compila el `main`) y luego `electron-builder` para generar instaladores en `dist` per platform.
-
-Notas sobre Windows (desarrollo local)
-
-- En Windows puedes correr la app en modo dev con:
-
-```powershell
-npm install
-npm run dev
-```
-
-Notas sobre empaquetado multiplataforma
-
-- La configuración de `electron-builder` genera instaladores para Windows (NSIS), macOS (DMG) y Linux (AppImage + deb) si se ejecuta en la plataforma correspondiente. Para crear instaladores Windows desde Linux/macOS necesitarás configurar herramientas de cross-compilation o usar runners Windows en CI.
-- Antes de empaquetar reemplaza los iconos de `build/icon.png`, `build/icon.ico` y `build/icon.icns` con imágenes reales.
-
-CI y firmados
-
-- El pipeline de CI genera artefactos `dist/**`. Para firmar instaladores en Windows/macOS se requiere configurar secretos de firma y pasos adicionales en la CI.
-
-Firmado de instaladores (resumen)
-
-Windows (code signing)
-
-- Registra un certificado de firma de código en un proveedor (p.ej. DigiCert, Sectigo) y exporta un archivo `.pfx` con contraseña.
-- En el runner (CI) guarda el `.pfx` como un secreto (o sube a secure storage) y configura variables de entorno: `SIGNING_KEY` (base64 of .pfx) y `SIGNING_KEY_PASSWORD`.
-- En el flujo de GitHub Actions añade un paso para descargar el `.pfx` desde `SIGNING_KEY` and run `signtool` (Windows runner) or use `electron-builder` sign options. Ejemplo conceptual:
-
-```yaml
-- name: Setup signing cert
-	run: echo "$SIGNING_KEY" | base64 --decode > signing.pfx
-- name: Sign installer (Windows)
-	run: |
-		signtool sign /fd SHA256 /a /f signing.pfx /p "$SIGNING_KEY_PASSWORD" dist/YourInstaller.exe
-	shell: bash
-```
-
-macOS (codesign + notarization)
-
-- Obtén certificados Developer ID Application and Installer from Apple and store them in CI secrets.
-- Configure `electron-builder` to use your Apple Team ID and identity; you can use `electron-builder`'s `macSign`/`notarize` settings and set `CSC_LINK` and `CSC_KEY_PASSWORD` environment variables (CSC_LINK is a base64 PKCS12 file or downloadable url protected by token).
-- Notarization requires Apple API key or username/password in the CI secrets; see `electron-builder` docs.
-
-CI secrets (suggested)
-
-- `SIGNING_KEY` - base64 encoded PFX (Windows)
-- `SIGNING_KEY_PASSWORD` - password for PFX
-- `CSC_LINK` - base64 encoded macOS signing key or URL
-- `CSC_KEY_PASSWORD` - password for macOS key
-- `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` or Apple API key variables if using notarization
-
-Security note
-
-- Store signing material securely (GitHub Secrets or a secure vault). Restrict access and rotate keys periodically.
-
-Tutorial en la app
-
-- La primera vez que abras la app, tras crear el administrador, verás un pequeño tutorial en el `Dashboard` con pasos: crear áreas, crear perfils, añadir treballadors i crear absències. Puedes marcarlo como visto para no mostrarlo de nuevo.
+---
+*Made with ❤️ for efficient team management.*
