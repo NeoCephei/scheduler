@@ -54,7 +54,7 @@ app.use('/api/calendar', calendarRouter);
 app.use('/api/trainees', traineesRouter);
 app.use('/api/settings', settingsRouter);
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('Scheduler Backend API');
 });
 

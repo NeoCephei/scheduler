@@ -1,6 +1,8 @@
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Coffee } from 'lucide-react'
+import { useEffect } from 'react'
+import { useConfigStore } from '../stores/configStore'
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -8,9 +10,22 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   const { t, i18n } = useTranslation()
+  const { settings, updateSetting, fetchData } = useConfigStore()
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (settings?.language && settings.language !== i18n.language) {
+      i18n.changeLanguage(settings.language);
+    }
+  }, [settings?.language, i18n]);
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es')
+    const newLang = i18n.language === 'es' ? 'en' : 'es';
+    i18n.changeLanguage(newLang);
+    updateSetting('language', newLang);
   }
 
   return (
@@ -27,6 +42,9 @@ function RootComponent() {
             <Link to="/" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               {t('nav.dashboard')}
             </Link>
+            <Link to="/calendar" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
+              Calendario
+            </Link>
             <Link to="/staff" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               Plantilla
             </Link>
@@ -35,9 +53,6 @@ function RootComponent() {
             </Link>
             <Link to="/trainees" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               Estudiantes
-            </Link>
-            <Link to="/calendar" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
-              Calendario
             </Link>
             <Link to="/configuration" activeProps={{ className: "text-foreground font-semibold" }} inactiveProps={{ className: "text-foreground/60 font-medium" }} className="transition-colors hover:text-foreground/80">
               {t('nav.configuration')}

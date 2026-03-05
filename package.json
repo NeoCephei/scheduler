@@ -1,0 +1,61 @@
+{
+  "name": "scheduler",
+  "version": "1.0.1",
+  "description": "Aplicación de Escritorio Offline para Gestión de Personal",
+  "main": "main.js",
+  "author": "Magi",
+  "scripts": {
+    "start": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "pack": "npm run build:frontend && electron-builder --dir",
+    "dist": "npm run build:frontend && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.magi.scheduler",
+    "productName": "Scheduler",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "!backend/database.sqlite",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/database.sqlite",
+        "to": "database.sqlite",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true,
+      "artifactName": "Scheduler.exe"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.9",
+    "electron": "^31.2.0",
+    "electron-builder": "^24.13.3",
+    "jimp": "^0.16.13",
+    "png-to-ico": "^3.0.1"
+  }
+}
