@@ -8,10 +8,8 @@ const OUTPUT_ICO = './icon.ico';
 
 async function processImage() {
   try {
-    console.log('Reading image...');
     const image = await Jimp.read(INPUT_IMAGE);
     
-    console.log('Making white background transparent...');
     // Iterating over all pixels to remove white/off-white background
     const tolerance = 240;
     
@@ -31,17 +29,13 @@ async function processImage() {
     // Resize to a nice square power of 2
     image.resize(512, 512, Jimp.RESIZE_BICUBIC);
     
-    console.log('Writing transparent icon.png...');
     await image.writeAsync(OUTPUT_PNG);
     
-    console.log('Generating icon.ico...');
     const buf = await pngToIco(OUTPUT_PNG);
     fs.writeFileSync(OUTPUT_ICO, buf);
     
-    console.log('Copying to frontend...');
     fs.writeFileSync('./frontend/public/favicon.ico', buf);
     
-    console.log('Done!');
   } catch (error) {
     console.error('Error processing image:', error);
   }

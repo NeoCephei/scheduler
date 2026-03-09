@@ -53,7 +53,6 @@ app.whenReady().then(() => {
   // Start internal listener
   const PORT = 3001;
   serverApp.listen(PORT, '127.0.0.1', () => {
-    console.log(`Express internally listening on port ${PORT}`);
     // 3. Open UI Window
     createWindow();
   });

@@ -5,4 +5,3 @@ try { db.exec('ALTER TABLE areas ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 
 try { db.exec('ALTER TABLE profiles ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;'); } catch(e) {}
 try { db.exec('ALTER TABLE shifts ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;'); } catch(e) {}
 
-console.log('Columns added directly successfully.');

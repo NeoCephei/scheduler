@@ -59,9 +59,7 @@ app.get('/api', (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Backend server running on http://localhost:${port}`);
-  });
+  app.listen(port, () => {});
 }
 
 module.exports = app;
