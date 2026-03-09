@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCalendarStore } from '../stores/calendarStore';
 import { useConfigStore } from '../stores/configStore';
@@ -10,6 +10,8 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Download } from 'lucide-react';
 import CalendarGrid from '../components/calendar/CalendarGrid';
+import ExportModal from '../components/calendar/ExportModal';
+import { exportToExcel } from '../lib/exportUtils';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -19,14 +21,16 @@ export const Route = createRoute({
 
 function CalendarPage() {
   const { t, i18n } = useTranslation();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { 
     viewMode, groupMode, currentDate, 
     setViewMode, setGroupMode, goNext, goPrev, goToday, 
-    fetchMatrix, getStartEndDates, loading 
+    fetchMatrix, getStartEndDates, loading, matrixData
   } = useCalendarStore();
   
   // We need metadata like Areas, Shifts, Workers, and Absences for the Grid/Modal
-  const { fetchData: fetchConfig } = useConfigStore();
+  const { fetchData: fetchConfig, areas, shifts } = useConfigStore();
   const { fetchWorkers, fetchGlobalAbsences } = useStaffStore();
 
   useEffect(() => {
@@ -39,7 +43,11 @@ function CalendarPage() {
   const { startStr, endStr } = getStartEndDates();
 
   const handleExport = () => {
-    window.print();
+    setIsExportModalOpen(true);
+  };
+
+  const executeExcelExport = async (options) => {
+    await exportToExcel(matrixData, { t, language: i18n.language }, areas, shifts, options, t('nav.calendar'));
   };
 
   return (
@@ -118,6 +126,12 @@ function CalendarPage() {
           <CalendarGrid />
         </CardContent>
       </Card>
+
+      <ExportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+        onExport={executeExcelExport}
+      />
     </div>
   );
 }
