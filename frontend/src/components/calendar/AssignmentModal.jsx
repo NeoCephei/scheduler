@@ -18,15 +18,34 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
   const [loading, setLoading] = useState(false);
   const [activeAbsences, setActiveAbsences] = useState([]);
   const [conflictCandidate, setConflictCandidate] = useState(null);
+  const [isRangeMode, setIsRangeMode] = useState(false);
+  const [rangeEndDate, setRangeEndDate] = useState(cellInfo?.date || '');
+  const [absenceEndLimit, setAbsenceEndLimit] = useState(null);
 
   // Fetch active absences for the current cell date from the global staff store to avoid double fetching
   const { absences: globalAbsences } = useStaffStore();
   
   useEffect(() => {
     if (!cellInfo?.date || !globalAbsences) return;
+    
+    // 1. Filter active absences for today (for recommendations)
     const activeToday = globalAbsences.filter(a => a.dateStart <= cellInfo.date && a.dateEnd >= cellInfo.date);
     setActiveAbsences(activeToday);
-  }, [cellInfo?.date, globalAbsences]);
+    setRangeEndDate(cellInfo.date);
+
+    // 2. Identify if this profile's fixed worker is absent today
+    const fixedWorker = workers.find(w => w.fixedProfileId === cellInfo.profile.profileId);
+    if (fixedWorker) {
+      const absence = activeToday.find(a => a.workerId === fixedWorker.id);
+      if (absence) {
+        setAbsenceEndLimit(absence.dateEnd);
+      } else {
+        setAbsenceEndLimit(null);
+      }
+    } else {
+      setAbsenceEndLimit(null);
+    }
+  }, [cellInfo?.date, globalAbsences, workers, cellInfo?.profile?.profileId]);
 
   // Derived data
   const profileDetails = profiles.find(p => p.id === cellInfo?.profile?.profileId);
@@ -37,13 +56,40 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
     // Check if forcing UNCOVERED
     if (!candidate) {
       setLoading(true);
-      await updateCellOverride(cellInfo.profile.profileId, targetDate, null);
+      await updateCellOverride(cellInfo.profile.profileId, targetDate, null, isRangeMode ? rangeEndDate : null);
       setLoading(false);
       onClose();
       return;
     }
 
-    if (candidate.assignedElsewhere) {
+    // 1. Conflict detection (Proactive)
+    if (isRangeMode) {
+      const start = new Date(targetDate);
+      const end = new Date(rangeEndDate);
+      const conflicts = [];
+      
+      let current = new Date(start);
+      while (current <= end) {
+        const dStr = current.toISOString().split('T')[0];
+        const dayCells = matrixData.filter(c => c.date === dStr);
+        const match = dayCells.find(c => c.allocatedWorkerId === candidate.id && c.profileId !== cellInfo.profile.profileId);
+        if (match) {
+          conflicts.push({ date: dStr, profileName: match.profileName });
+        }
+        current.setDate(current.getDate() + 1);
+      }
+
+      if (conflicts.length > 0) {
+        setConflictCandidate({
+            ...candidate,
+            isRangeConflict: true,
+            conflictCount: conflicts.length,
+            // Just for the UI label
+            assignedElsewhere: conflicts[0].profileName + (conflicts.length > 1 ? ` (+ ${conflicts.length - 1} más)` : '')
+        });
+        return;
+      }
+    } else if (candidate.assignedElsewhere) {
       setConflictCandidate(candidate);
       return;
     }
@@ -53,10 +99,13 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
 
   const executeOverride = async (candidate) => {
     setLoading(true);
-    if (candidate.assignedElsewhereProfileId) {
+    if (!isRangeMode && candidate.assignedElsewhereProfileId) {
+      // For single day, we maintain the behavior of clearing specifically the other slot
+      // although backend now handles it globally by workerId + date.
       await updateCellOverride(candidate.assignedElsewhereProfileId, targetDate, null);
     }
-    await updateCellOverride(cellInfo.profile.profileId, targetDate, candidate.id);
+    // Backend now handles range conflicts by workerId internally
+    await updateCellOverride(cellInfo.profile.profileId, targetDate, candidate.id, isRangeMode ? rangeEndDate : null);
     setLoading(false);
     onClose();
   };
@@ -194,6 +243,50 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
                 </div>
               )}
             </div>
+
+            {/* Range Mode Toggle */}
+            <div className="mt-4 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted/30 transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={isRangeMode} 
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsRangeMode(checked);
+                    if (checked && absenceEndLimit) {
+                      setRangeEndDate(absenceEndLimit);
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-semibold">{t('calendar.assign_range')}</span>
+              </label>
+
+              {isRangeMode && (
+                <div className="space-y-2 p-3 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-primary uppercase tracking-tight">{t('calendar.range_end')}</label>
+                    {absenceEndLimit && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
+                        {t('calendar.range_limit_hint', { date: new Date(absenceEndLimit).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short'}) })}
+                      </span>
+                    )}
+                  </div>
+                  <input 
+                    type="date" 
+                    min={targetDate}
+                    max={absenceEndLimit || undefined}
+                    value={rangeEndDate}
+                    onChange={(e) => setRangeEndDate(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <p className="text-[10px] text-amber-600 font-medium leading-tight">
+                    <AlertTriangle size={10} className="inline mr-1 mb-0.5" />
+                    {t('calendar.range_warning')}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
@@ -257,9 +350,11 @@ export default function AssignmentModal({ isOpen, onClose, cellInfo }) {
                 "{conflictCandidate?.assignedElsewhere}"
               </div>
               <p className="text-sm text-muted-foreground">
-                {conflictCandidate?.isRevertScenario 
-                  ? t('calendar.conflict_revert_msg')
-                  : t('calendar.conflict_move_msg')
+                {conflictCandidate?.isRangeConflict 
+                  ? t('calendar.conflict_range_msg')
+                  : conflictCandidate?.isRevertScenario 
+                    ? t('calendar.conflict_revert_msg')
+                    : t('calendar.conflict_move_msg')
                 }
               </p>
             </div>

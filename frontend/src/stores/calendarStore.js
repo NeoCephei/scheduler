@@ -96,10 +96,10 @@ export const useCalendarStore = create((set, get) => ({
   },
 
   // Manual Assignments
-  updateCellOverride: async (profileId, date, workerId) => {
+  updateCellOverride: async (profileId, date, workerId, dateEnd) => {
     // Optimistic UI update could go here, but since it's local sqlite, refetching is instant
     try {
-      await AssignmentsAPI.createOrUpdate({ profileId, date, workerId });
+      await AssignmentsAPI.createOrUpdate({ profileId, date, workerId, dateEnd });
       await get().fetchMatrix();
     } catch(err) {
       console.error(err);
