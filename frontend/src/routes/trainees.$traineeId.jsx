@@ -340,15 +340,15 @@ function TraineeDetailPage() {
                 
                 {workerTrainees.length > 0 ? (
                   <div className="grid gap-3">
-                    {workerTrainees.map(t => {
-                      const targetProfile = getProfile(t.targetProfileId);
+                    {workerTrainees.map(period => {
+                      const targetProfile = getProfile(period.targetProfileId);
                       const targetArea = targetProfile ? getArea(targetProfile.areaId) : null;
                       return (
-                        <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
+                        <div key={period.id} className="border rounded-lg p-4 bg-card shadow-sm flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${t.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : t.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                                {t.status === 'ACTIVE' ? t('students.btn_resume') : t.status === 'COMPLETED' ? t('students.btn_complete') : t('students.btn_pause')}
+                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${period.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : period.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                {period.status === 'ACTIVE' ? t('students.btn_resume') : period.status === 'COMPLETED' ? t('students.btn_complete') : t('students.btn_pause')}
                               </span>
                               <span className="text-sm font-semibold flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: targetArea?.color }} />
@@ -356,14 +356,14 @@ function TraineeDetailPage() {
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {t('students.period_from_to', { start: new Date(t.startDate).toLocaleDateString(), end: new Date(t.endDate).toLocaleDateString() })}
+                              {t('students.period_from_to', { start: new Date(period.startDate).toLocaleDateString(), end: new Date(period.endDate).toLocaleDateString() })}
                             </p>
-                            {t.notes && <p className="text-xs bg-muted/40 p-2 mt-2 rounded border">{t.notes}</p>}
+                            {period.notes && <p className="text-xs bg-muted/40 p-2 mt-2 rounded border">{period.notes}</p>}
                           </div>
                           <div className="flex flex-col gap-2">
-                            {t.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(t.id, 'PAUSED')} className="h-7 text-xs">{t('students.btn_pause')}</Button>}
-                            {t.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(t.id, 'ACTIVE')} className="h-7 text-xs">{t('students.btn_resume')}</Button>}
-                            {t.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(t.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">{t('students.btn_complete')}</Button>}
+                            {period.status === 'ACTIVE' && <Button size="sm" variant="outline" onClick={() => handleUpdateTraineeStatus(period.id, 'PAUSED')} className="h-7 text-xs">{t('students.btn_pause')}</Button>}
+                            {period.status === 'PAUSED' && <Button size="sm" variant="default" onClick={() => handleUpdateTraineeStatus(period.id, 'ACTIVE')} className="h-7 text-xs">{t('students.btn_resume')}</Button>}
+                            {period.status !== 'COMPLETED' && <Button size="sm" variant="secondary" onClick={() => handleUpdateTraineeStatus(period.id, 'COMPLETED')} className="h-7 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100">{t('students.btn_complete')}</Button>}
                           </div>
                         </div>
                       )

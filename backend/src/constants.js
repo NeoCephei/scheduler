@@ -10,7 +10,8 @@ const SUBSTITUTE_TYPES = [
   'EXTERNO',
   'INTERNO',
   'EVENTUAL',
-  'INTERINO'
+  'INTERINO',
+  'FORMACION'
 ];
 
 const ABSENCE_TYPES = [

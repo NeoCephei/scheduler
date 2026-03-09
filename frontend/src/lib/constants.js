@@ -7,7 +7,8 @@ export const SUBSTITUTE_TYPES = [
   'EXTERNO',
   'INTERNO',
   'EVENTUAL',
-  'INTERINO'
+  'INTERINO',
+  'FORMACION'
 ];
 
 export const ABSENCE_TYPES = [
@@ -38,5 +39,6 @@ export const SUBSTITUTE_TYPE_LABELS = {
   EXTERNO: 'Externo',
   INTERNO: 'Interno',
   EVENTUAL: 'Eventual',
-  INTERINO: 'Interino'
+  INTERINO: 'Interino',
+  FORMACION: 'Formación'
 };
