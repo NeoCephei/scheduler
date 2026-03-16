@@ -1,6 +1,6 @@
 {
   "name": "scheduler",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Aplicación de Escritorio Offline para Gestión de Personal",
   "main": "main.js",
   "author": "Magi",
@@ -8,7 +8,11 @@
     "start": "electron .",
     "build:frontend": "cd frontend && npm run build",
     "pack": "npm run build:frontend && electron-builder --dir",
-    "dist": "npm run build:frontend && electron-builder",
+    "bump": "node scripts/bump-version.js",
+    "dist": "npm run dist:patch",
+    "dist:patch": "npm run bump patch && npm run build:frontend && electron-builder",
+    "dist:minor": "npm run bump minor && npm run build:frontend && electron-builder",
+    "dist:major": "npm run bump major && npm run build:frontend && electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
@@ -41,7 +45,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": true,
-      "artifactName": "Scheduler.exe"
+      "artifactName": "Scheduler Installer.exe"
     }
   },
   "dependencies": {
