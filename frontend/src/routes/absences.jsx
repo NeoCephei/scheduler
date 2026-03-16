@@ -9,10 +9,156 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { ABSENCE_TYPES, ABSENCE_TYPE_LABELS } from '../lib/constants';
-import { Calendar, User, Search, RefreshCw, Plus, AlertTriangle, ArrowRight, Trash2, Edit } from 'lucide-react';
+import { Calendar, User, Search, RefreshCw, Plus, AlertTriangle, ArrowRight, Trash2, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CalendarAPI } from '../lib/api';
 import { useNavigate } from '@tanstack/react-router';
 import AssignmentModal from '../components/calendar/AssignmentModal';
+
+function AbsencesDashboard({ dashboardDate, setDashboardDate, workersMap, absences, t }) {
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const currentYear = dashboardDate.getFullYear();
+  const currentMonth = dashboardDate.getMonth();
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  
+  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateObj = new Date(currentYear, currentMonth, day);
+    const dayOfWeek = dateObj.getDay(); // 0 is Sunday, 1 is Monday...
+    
+    // Map JS getDay (0-6) mapping to i18n keys
+    let dayKey = 'days_short.sun';
+    if (dayOfWeek === 1) dayKey = 'days_short.mon';
+    else if (dayOfWeek === 2) dayKey = 'days_short.tue';
+    else if (dayOfWeek === 3) dayKey = 'days_short.wed';
+    else if (dayOfWeek === 4) dayKey = 'days_short.thu';
+    else if (dayOfWeek === 5) dayKey = 'days_short.fri';
+    else if (dayOfWeek === 6) dayKey = 'days_short.sat';
+    
+    const dayName = t(dayKey);
+    return { day, dateStr, dayName, isWeekend: dayOfWeek === 0 || dayOfWeek === 6 };
+  });
+
+  const dailyAbsenceCounts = new Array(daysInMonth).fill(0);
+  const monthStartStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+  const monthEndStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  const workersWithMonthAbsences = Object.values(workersMap).filter(worker => {
+    return absences.some(a => a.workerId === worker.id && a.dateStart <= monthEndStr && a.dateEnd >= monthStartStr);
+  }).sort((a,b) => a.name.localeCompare(b.name));
+
+  const dashboardData = workersWithMonthAbsences.map(worker => {
+    const workerRow = { worker, days: new Array(daysInMonth).fill(null) };
+    const workerAbsences = absences.filter(a => a.workerId === worker.id && a.dateStart <= monthEndStr && a.dateEnd >= monthStartStr);
+    
+    monthDays.forEach((md, idx) => {
+      const activeAbsence = workerAbsences.find(a => a.dateStart <= md.dateStr && a.dateEnd >= md.dateStr);
+      if (activeAbsence) {
+        workerRow.days[idx] = activeAbsence;
+        dailyAbsenceCounts[idx]++;
+      }
+    });
+    
+    return workerRow;
+  });
+
+  const handlePrevMonth = () => {
+    setDashboardDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setDashboardDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+  
+  const monthNames = [
+    t('months.jan', { defaultValue: 'Enero' }), t('months.feb', { defaultValue: 'Febrero' }), t('months.mar', { defaultValue: 'Marzo' }),
+    t('months.apr', { defaultValue: 'Abril' }), t('months.may', { defaultValue: 'Mayo' }), t('months.jun', { defaultValue: 'Junio' }),
+    t('months.jul', { defaultValue: 'Julio' }), t('months.aug', { defaultValue: 'Agosto' }), t('months.sep', { defaultValue: 'Septiembre' }),
+    t('months.oct', { defaultValue: 'Octubre' }), t('months.nov', { defaultValue: 'Noviembre' }), t('months.dec', { defaultValue: 'Diciembre' })
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+            <ChevronLeft size={16} />
+          </Button>
+          <h2 className="text-lg font-semibold w-40 text-center">
+            {monthNames[currentMonth]} {currentYear}
+          </h2>
+          <Button variant="outline" size="icon" onClick={handleNextMonth}>
+            <ChevronRight size={16} />
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground flex gap-4">
+          <span className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500 rounded-sm"></div> {t('absences.legend_absent', { defaultValue: 'Ausente' })}</span>
+        </div>
+      </div>
+
+      <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-muted/50 border-b">
+              <th className="p-3 font-semibold sticky left-0 bg-muted/90 backdrop-blur z-10 border-r border-b min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                {t('absences.worker', { defaultValue: 'Trabajador' })}
+              </th>
+              {monthDays.map((md, idx) => (
+                <th key={md.day} className={`p-1 border-r last:border-r-0 min-w-[44px] text-center ${md.isWeekend ? 'bg-muted/30' : ''}`}>
+                  <div className={`font-semibold text-xs mb-0.5 ${md.isWeekend ? 'text-muted-foreground' : 'text-foreground/70'}`}>
+                    {md.dayName}
+                  </div>
+                  <div className={`font-bold ${md.isWeekend ? 'text-muted-foreground' : 'text-foreground'}`}>
+                    {md.day}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80 font-medium mt-0.5" title={t('absences.total_day_absences', { defaultValue: 'Total ausencias' })}>
+                    ({dailyAbsenceCounts[idx]})
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dashboardData.length === 0 ? (
+              <tr>
+                <td colSpan={daysInMonth + 1} className="p-8 text-center text-muted-foreground">
+                  {t('absences.no_absences_month', { defaultValue: 'No hay ausencias programadas para este mes.' })}
+                </td>
+              </tr>
+            ) : (
+              dashboardData.map((row) => (
+                <tr key={row.worker.id} className="border-b last:border-b-0 hover:bg-muted/10 transition-colors">
+                  <td className="p-3 sticky left-0 bg-card/90 backdrop-blur z-10 font-medium border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                    <div className="truncate w-48 text-[13px]" title={row.worker.name}>
+                      {row.worker.name}
+                    </div>
+                  </td>
+                  {row.days.map((absence, dayIdx) => {
+                    const md = monthDays[dayIdx];
+                    return (
+                    <td key={dayIdx} className={`border-r last:border-r-0 p-1 text-center relative h-10 ${md.isWeekend ? 'bg-muted/10' : ''}`}>
+                      {absence ? (
+                        <div 
+                          className="absolute inset-1 bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-900/50 rounded flex items-center justify-center cursor-help transition-all hover:bg-red-100 dark:hover:bg-red-900/40"
+                          title={`${t('absence_type.' + absence.type, { defaultValue: ABSENCE_TYPE_LABELS[absence.type] || absence.type })} ${absence.note ? '- ' + absence.note : ''}`}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-red-500 shadow-sm"></div>
+                        </div>
+                      ) : (
+                        <div className="absolute inset-1 hover:bg-muted/30 rounded transition-colors"></div>
+                      )}
+                    </td>
+                    );
+                  })}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -32,6 +178,11 @@ function GlobalAbsencesPage() {
 
   const [search, setSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('LIST');
+  const [dashboardDate, setDashboardDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   // Absence Modal
   const [isAbsenceModalOpen, setAbsenceModalOpen] = useState(false);
@@ -328,7 +479,25 @@ function GlobalAbsencesPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 flex-wrap bg-muted/20 p-4 rounded-xl border items-center">
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-border/50">
+        <button
+          className={`pb-3 px-1 font-medium text-sm border-b-2 transition-colors ${activeTab === 'LIST' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('LIST')}
+        >
+          {t('absences.tab_list', { defaultValue: 'Lista de Ausencias' })}
+        </button>
+        <button
+          className={`pb-3 px-1 font-medium text-sm border-b-2 transition-colors ${activeTab === 'DASHBOARD' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('DASHBOARD')}
+        >
+          {t('absences.tab_dashboard', { defaultValue: 'Calendario' })}
+        </button>
+      </div>
+
+      {activeTab === 'LIST' ? (
+        <>
+          <div className="flex gap-4 flex-wrap bg-muted/20 p-4 rounded-xl border items-center">
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <Input 
@@ -468,6 +637,16 @@ function GlobalAbsencesPage() {
           })
         )}
       </div>
+      </>
+      ) : (
+        <AbsencesDashboard 
+          dashboardDate={dashboardDate}
+          setDashboardDate={setDashboardDate}
+          workersMap={workersMap}
+          absences={absences}
+          t={t}
+        />
+      )}
 
       <Modal isOpen={isAbsenceModalOpen} onClose={() => { setAbsenceModalOpen(false); setAbsenceError(''); setImpactData(null); }} title={impactData ? t('absences.modal_impact_title') : (editingAbsenceId ? t('absences.modal_edit_title') : t('absences.modal_create_title'))}>
         {!impactData ? (
