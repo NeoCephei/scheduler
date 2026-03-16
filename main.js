@@ -4,7 +4,22 @@ const fs = require('fs');
 
 function setupDatabase() {
   const userDataPath = app.getPath('userData');
-  return path.join(userDataPath, 'database.sqlite');
+  const configPath = path.join(userDataPath, 'db-config.json');
+  let dbDir = userDataPath;
+
+  try {
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.customDbPath && fs.existsSync(config.customDbPath)) {
+        dbDir = config.customDbPath;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to read db config:', err);
+  }
+
+  process.env.DB_DIR = dbDir;
+  return path.join(dbDir, 'database.sqlite');
 }
 
 let mainWindow;

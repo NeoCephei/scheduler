@@ -19,6 +19,7 @@ const assignmentsRouter = require('./src/routes/assignments');
 const calendarRouter = require('./src/routes/calendar');
 const traineesRouter = require('./src/routes/trainees');
 const settingsRouter = require('./src/routes/settings');
+const systemRouter = require('./src/routes/system');
 
 app.use(cors());
 app.use(express.json());
@@ -53,6 +54,7 @@ app.use('/api/assignments', assignmentsRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/trainees', traineesRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/system', systemRouter);
 
 app.get('/api', (req, res) => {
   res.send('Scheduler Backend API');
