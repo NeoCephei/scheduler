@@ -11,6 +11,7 @@ import AreasProfilesTab from '../components/config/AreasProfilesTab';
 import ShiftsTab from '../components/config/ShiftsTab';
 import HolidaysTab from '../components/config/HolidaysTab';
 import GeneralSettingsTab from '../components/config/GeneralSettingsTab';
+import DatabaseSettingsTab from '../components/config/DatabaseSettingsTab';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -35,6 +36,7 @@ function Configuration() {
     { id: 'shifts', label: t('config.tab_shifts') },
     { id: 'holidays', label: t('config.tab_holidays') },
     { id: 'general', label: t('config.tab_rules') },
+    { id: 'database', label: t('config.db_title') },
   ];
 
   return (
@@ -66,6 +68,7 @@ function Configuration() {
           {activeTab === 'shifts' && <ShiftsTab />}
           {activeTab === 'holidays' && <HolidaysTab />}
           {activeTab === 'general' && <GeneralSettingsTab />}
+          {activeTab === 'database' && <DatabaseSettingsTab />}
         </CardContent>
       </Card>
     </div>
