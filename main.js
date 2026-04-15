@@ -36,7 +36,8 @@ function createWindow() {
     title: "Scheduler"
   });
 
-  mainWindow.setMenuBarVisibility(false);
+  // Show menu bar
+  mainWindow.setMenuBarVisibility(true);
   
   // Open directly pointing to our internally spawned backend server
   mainWindow.loadURL('http://localhost:3001');
