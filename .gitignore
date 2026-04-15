@@ -34,3 +34,6 @@ release/
 
 # TypeScript
 *.tsbuildinfo
+
+.backend/node_modules
+.todo.md

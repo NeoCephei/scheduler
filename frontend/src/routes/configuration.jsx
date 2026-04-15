@@ -3,8 +3,7 @@ import { createRoute } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Route as rootRoute } from './__root';
 import { useConfigStore } from '../stores/configStore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import { Card, CardContent } from '../components/ui/Card';
 
 // Subcomponents for tabs
 import AreasProfilesTab from '../components/config/AreasProfilesTab';
